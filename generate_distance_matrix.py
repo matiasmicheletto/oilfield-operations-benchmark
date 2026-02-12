@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+"""
+generate_distance_matrix.py
+
+Generates a distance matrix for synthetic oilfield optimization instances based on a YAML configuration file.
+
+Usage:
+    python generate_distance_matrix.py config.yaml
+"""
+
 import sys
 import yaml
 import numpy as np
