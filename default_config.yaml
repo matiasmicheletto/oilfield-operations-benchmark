@@ -1,0 +1,177 @@
+general:  # ---------------------------------------------------------
+          # General settings controlling instance generation
+          # ---------------------------------------------------------
+
+  num_instances: 10      # Number of independent instances to generate.
+                         # Recommended:
+                         #   5–20 for testing
+                         #   20–100 for benchmarking studies
+  seed: 42               # Random seed for reproducibility.
+                         # Use a fixed value for research experiments.
+                         # Set to null or remove for non-deterministic runs.
+  output_dir: "instances"   # Directory where generated instances are stored.
+  output_prefix: "instance"  # Prefix for generated file names.
+                             # Files will be named like:
+                             # instance_<wells>_<batteries>_<id>.dat
+
+  n_wells: 50            # Number of wells in the instance.
+                         # Controls problem size.
+                         # Typical ranges:
+                         #   Small: 20–50
+                         #   Medium: 100–300
+                         #   Large-scale: 500+
+
+  n_batteries: 2         # Number of production batteries.
+                         # Wells are assigned evenly across batteries.
+                         # Usually 1–5 for small/medium studies.
+
+
+rounding:  # --------------------------------------------------------
+           # Number of decimal places for each generated variable.
+           # If set to 0 → values become integers.
+           # If >0 → floating-point values are preserved.
+           # --------------------------------------------------------
+
+  production: 0   # Gross and net production rounding.
+                  # Recommended:
+                  #   0 for MILP integer conditioning
+                  #   2 for more realistic continuous values
+
+  regime: 0       # Production regime rounding.
+                  # Often set to 0 when scaled to 0–100.
+
+  risk: 0         # Risk rounding.
+                  # If scaling.risk = 100, use 0 (integer 0–100 scale).
+                  # If no scaling, use 2–4 decimals.
+
+  priority: 0     # Priority rounding.
+                  # Same recommendation as risk.
+  
+  cost: 0         # Intervention cost rounding.
+                  # 0 for integer MILP models.
+                  # 2 if representing monetary values.
+
+
+scaling:  # ---------------------------------------------------------
+          # Scaling factors applied AFTER generation.
+          # Used to improve MILP numerical conditioning.
+          # Example: risk in [0,1] → scale 100 → [0,100].
+          # ---------------------------------------------------------
+
+  risk: 100       # Multiplies risk values.
+                  # Recommended:
+                  #   1   → keep in [0,1]
+                  #   100 → integer scale (recommended for MILP)
+  
+  priority: 100   # Same logic as risk scaling.
+  
+  cost: 1         # Cost scaling.
+                  # Increase if cost coefficients are too small.
+                  # Often left as 1.
+  
+  regime: 100     # Regime scaling.
+                  # Converts Beta(0,1) → 0–100 integer scale.
+
+
+production:  # ------------------------------------------------------
+             # Production-related distributions
+             # ------------------------------------------------------
+
+  gross:
+    # G ~ LogNormal(mean, sigma)
+    # Note: 'mu' is automatically mapped to 'mean' by the script
+    distribution: lognormal
+
+    mu: 3.8       # Location parameter (log scale).
+                  # Increasing mu increases average production.
+                  # Typical range: 3.0–4.5
+    
+    sigma: 0.6    # Dispersion parameter.
+                  # Higher sigma → more heterogeneity.
+                  # Typical range: 0.3–1.0
+
+  net_ratio:
+    # Ratio ~ Beta(alpha, beta)
+    # Net = Gross * ratio
+    distribution: beta
+    alpha: 2      # Shape parameter α.
+    beta: 3       # Shape parameter β.
+                  # alpha < beta → skew toward lower net ratios.
+                  # Common realistic range: alpha,beta ∈ [1,5]
+
+  regime:
+    # Production regime (e.g., maturity or decline state).
+    # Regime ~ Beta(alpha, beta)
+    distribution: beta
+    alpha: 4
+    beta: 2
+                  # alpha > beta → skew toward higher regime values.
+                  # Adjust to simulate early/late-life fields.
+
+
+risk_priority:  # ---------------------------------------------------
+                # If 'distribution' is missing, these default to 
+                # correlation with production (Legacy Mode).
+                # ---------------------------------------------------
+
+  risk:
+    # Correlated with Gross Production
+    # R = rho * normalized(G) + noise
+    rho_g: 0.8        # Correlation strength with production.
+                      # 0 → independent of production
+                      # 1 → fully production-driven
+                      # Recommended: 0.5–0.9
+
+    noise_std: 0.05   # Gaussian noise standard deviation.
+                      # Controls randomness.
+                      # 0.01–0.1 typical.
+                      # Larger → weaker correlation.
+
+  priority:
+    # Correlated with Net Production
+    # P = rho * normalized(N) + noise
+    rho: 0.7        # Correlation strength with net production.
+                      # Recommended: 0.5–0.9
+
+    noise_std: 0.05   # Noise level.
+                      # Similar interpretation as risk noise.
+
+  cost:
+    # Intervention cost model:
+    # C = kappa + w_r * R + w_p * (1 - P)
+    #
+    # NOTE:
+    # If R and P are scaled to 0–100,
+    # adjust interpretation accordingly.
+
+    w_r: 10           # Weight of risk in cost.
+                      # Larger → risky wells are more expensive.
+
+    w_p: 5            # Weight of (1 - priority).
+                      # Larger → low-priority wells cost more.
+
+    kappa: 2          # Base intervention cost (fixed cost component).          
+
+
+limits:  # ----------------------------------------------------------
+         # Operational or modeling constraints
+         # Used in optimization stage (not generation).
+         # ----------------------------------------------------------
+
+  max_loss: 500       # Maximum allowable production loss.
+                      # Units consistent with production scaling.
+
+  max_cost: 900       # Budget constraint.
+                      # Must align with scaled cost values.
+
+  max_quantity: 9     # Maximum number of wells that can be selected.
+                      # Used in cardinality constraints.  
+
+
+resources:  # -------------------------------------------------------
+            # Available operational resources
+            # -------------------------------------------------------
+
+  crews: 2            # Number of intervention crews available.
+                      # Typically small (1–5).
+                      # Limits simultaneous operations.
