@@ -175,3 +175,59 @@ resources:  # -------------------------------------------------------
   crews: 2            # Number of intervention crews available.
                       # Typically small (1–5).
                       # Limits simultaneous operations.
+
+
+spatial:  # -------------------------------------------------------
+          # Spatial configuration parameters
+          # -------------------------------------------------------
+
+  output_dir: "distances"                 # Directory for spatial output files (e.g., distance matrix).
+  output_file_name: "distance_matrix.dat" # File name for distance matrix output.
+
+  area_size_km: 20              # Square area side length (km)
+                                # Controls spatial density of wells.
+                                # Larger area → more spread out wells.
+
+  n_clusters: 4                 # Number of well clusters
+                                # Wells are grouped into clusters to create spatial correlation.
+                                # 1 → all wells in one cluster (high spatial correlation)
+                                # n_wells → each well is its own cluster (no spatial correlation)
+
+  cluster_radius_m: 600         # Std deviation inside cluster (meters)
+                                # Controls how tightly wells are grouped within clusters.
+                                # Smaller → tighter clusters, larger → more spread out wells within clusters.
+  
+  road_network: # -------------------------------------------------------
+                # Parameters for generating the road network
+                # -------------------------------------------------------
+
+    extra_edge_ratio: 0.2       # % of extra edges beyond MST (0–1)
+                                # 0 → only minimum spanning tree (MST) connections
+                                # 1 → fully connected graph (all pairs)
+                                # Recommended: 0.1–0.3 for realistic road networks.
+
+    detour_min: 1.2             # Minimum detour factor
+                                # Detour factor = actual road distance / Euclidean distance
+                                # 1.0 → perfect straight roads
+                                # >1 → roads are longer than straight line
+                                # Recommended: 1.1–1.5 for realistic scenarios.     
+    
+    detour_max: 1.8             # Maximum detour factor
+                                # Should be greater than detour_min.
+                                # Controls variability in road network efficiency.
+                                # Recommended: 1.5–2.0 for realistic scenarios.
+
+  plot: # -------------------------------------------------------
+        # Parameters for plotting the spatial configuration
+        # -------------------------------------------------------
+    save: false  # Whether to save the plot of the spatial configuration.
+                # If true, the plot will be saved to a file in the output directory.
+    show: true # Whether to display the plot interactively.
+
+  operations_center: # -------------------------------------------------------
+                    # Parameters for operations center location
+                    # -------------------------------------------------------
+
+    location: "random_cluster"  # options: random_cluster | center
+                                # "random_cluster" → place center at random cluster centroid (realistic)
+                                # "center" → place center at geometric center of area (less realistic)
