@@ -10,63 +10,44 @@ Usage:
 """
 
 import sys
-import yaml
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from pathlib import Path
 from scipy.spatial import distance_matrix
 from scipy.sparse.csgraph import minimum_spanning_tree
+from util import load_config, create_rng
 
-
-# ------------------------------------------------------------
-# Utility
-# ------------------------------------------------------------
-
-def load_config(path):
-    if not Path(path).exists():
-        print(f"Configuration file '{path}' not found.")
-        sys.exit(1)
-
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
-
-
-def set_seed(seed):
-    if seed is not None:
-        np.random.seed(seed)
-
-
-# ------------------------------------------------------------
+# ============================================================
 # Spatial generation
-# ------------------------------------------------------------
+# ============================================================
 
-def generate_clusters(n_wells, cfg):
+def generate_clusters(rng, n_wells, cfg):
     area_km = cfg["area_size_km"]
     n_clusters = cfg["n_clusters"]
     radius_m = cfg["cluster_radius_m"]
 
     area_m = area_km * 1000
 
-    centers = np.random.uniform(0, area_m, size=(n_clusters, 2))
+    centers = rng.uniform(0, area_m, size=(n_clusters, 2))
 
     wells_per_cluster = int(np.ceil(n_wells / n_clusters))
 
     coords = []
     for c in centers:
         for _ in range(wells_per_cluster):
-            point = c + np.random.normal(0, radius_m, size=2)
+            point = c + rng.normal(0, radius_m, size=2)
             coords.append(point)
 
     coords = np.array(coords[:n_wells])
     return coords, centers
 
 
-def add_operations_center(coords, centers, cfg):
+def add_operations_center(rng, coords, centers, cfg):
     loc_type = cfg["operations_center"]["location"]
 
     if loc_type == "random_cluster":
-        center = centers[np.random.randint(len(centers))]
+        center = centers[rng.integers(len(centers))]
     elif loc_type == "center":
         center = np.mean(coords, axis=0)
     else:
@@ -75,11 +56,11 @@ def add_operations_center(coords, centers, cfg):
     return np.vstack([center, coords])
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Road network
-# ------------------------------------------------------------
+# ============================================================
 
-def build_road_graph(coords, road_cfg):
+def build_road_graph(rng, coords, road_cfg):
     n = len(coords)
 
     eucl_dist = distance_matrix(coords, coords)
@@ -92,7 +73,7 @@ def build_road_graph(coords, road_cfg):
     for i in range(n):
         for j in range(n):
             if mst[i, j] > 0:
-                detour = np.random.uniform(
+                detour = rng.uniform(
                     road_cfg["detour_min"],
                     road_cfg["detour_max"]
                 )
@@ -107,7 +88,7 @@ def build_road_graph(coords, road_cfg):
     n_extra = int(len(G.edges) * road_cfg["extra_edge_ratio"])
 
     if possible_edges and n_extra > 0:
-        chosen = np.random.choice(
+        chosen = rng.choice(
             len(possible_edges),
             size=min(n_extra, len(possible_edges)),
             replace=False
@@ -115,7 +96,7 @@ def build_road_graph(coords, road_cfg):
 
         for idx in chosen:
             i, j = possible_edges[idx]
-            detour = np.random.uniform(
+            detour = rng.uniform(
                 road_cfg["detour_min"],
                 road_cfg["detour_max"]
             )
@@ -124,9 +105,9 @@ def build_road_graph(coords, road_cfg):
     return G
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Distance matrix
-# ------------------------------------------------------------
+# ============================================================
 
 def compute_shortest_path_matrix(G):
     n = len(G.nodes)
@@ -149,9 +130,9 @@ def save_distance_matrix(D, output_path):
             f.write(row_str + "\n")
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Plot
-# ------------------------------------------------------------
+# ============================================================
 
 def plot_graph(G, coords, save_path=None, show=False):
     plt.figure(figsize=(8, 8))
@@ -169,6 +150,10 @@ def plot_graph(G, coords, save_path=None, show=False):
     plt.ylabel("Meters")
     plt.axis("equal")
 
+    plt.scatter([], [], color="blue", label="Wells")
+    plt.scatter([], [], color="orange", marker="s", label="Operations Center")
+    plt.legend()
+
     if save_path:
         plt.savefig(save_path, dpi=300)
 
@@ -178,9 +163,9 @@ def plot_graph(G, coords, save_path=None, show=False):
     plt.close()
 
 
-# ------------------------------------------------------------
+# ============================================================
 # Main
-# ------------------------------------------------------------
+# ============================================================
 
 def main():
 
@@ -192,15 +177,16 @@ def main():
 
     config = load_config(config_path)
 
-    set_seed(config["general"].get("seed"))
+    seed = config["general"].get("seed", None)
+    rng = create_rng(seed)
 
     n_wells = config["general"]["n_wells"]
     spatial_cfg = config["spatial"]
 
-    coords, centers = generate_clusters(n_wells, spatial_cfg)
-    coords = add_operations_center(coords, centers, spatial_cfg)
+    coords, centers = generate_clusters(rng, n_wells, spatial_cfg)
+    coords = add_operations_center(rng, coords, centers, spatial_cfg)
 
-    G = build_road_graph(coords, spatial_cfg["road_network"])
+    G = build_road_graph(rng, coords, spatial_cfg["road_network"])
     D = compute_shortest_path_matrix(G)
 
     output_dir = Path(spatial_cfg["output_dir"])

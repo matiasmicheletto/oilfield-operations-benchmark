@@ -11,26 +11,14 @@ Usage:
 """
 
 import sys
-import yaml
 import numpy as np
 from pathlib import Path
+from util import load_config, create_rng
 
 
 # ============================================================
 # Utility
 # ============================================================
-
-def load_config(path: str) -> dict:
-    path = Path(path)
-    if not path.exists():
-        raise FileNotFoundError(f"Configuration file '{path}' not found.")
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
-
-
-def create_rng(seed):
-    return np.random.default_rng(seed)
-
 
 def process_array(arr, decimals, scale=1):
     """
