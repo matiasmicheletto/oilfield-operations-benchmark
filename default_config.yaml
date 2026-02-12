@@ -220,9 +220,9 @@ spatial:  # -------------------------------------------------------
   plot: # -------------------------------------------------------
         # Parameters for plotting the spatial configuration
         # -------------------------------------------------------
-    save: false  # Whether to save the plot of the spatial configuration.
+    save: true  # Whether to save the plot of the spatial configuration.
                 # If true, the plot will be saved to a file in the output directory.
-    show: true # Whether to display the plot interactively.
+    show: false # Whether to display the plot interactively.
 
   operations_center: # -------------------------------------------------------
                     # Parameters for operations center location
