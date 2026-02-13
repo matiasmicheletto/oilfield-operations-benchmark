@@ -1,6 +1,7 @@
 import numpy as np
 import networkx as nx
 from pathlib import Path
+import matplotlib.pyplot as plt
 from scipy.spatial import distance_matrix
 from scipy.sparse.csgraph import minimum_spanning_tree
 
@@ -106,7 +107,7 @@ class SpatialGenerator:
             for j in range(size):
                 dist_mat[i, j] = lengths[i][j]
         
-        return dist_mat, full_coords
+        return dist_mat, full_coords, G
 
     def _build_graph(self, coords):
         road_cfg = self.config["road_network"]
@@ -127,6 +128,53 @@ class SpatialGenerator:
                 detour = self.rng.uniform(road_cfg["detour_min"], road_cfg["detour_max"])
                 G.add_edge(i, j, weight=eucl[i, j] * detour)
         return G
+
+    def plot_graph(self, G, coords, instance_id):
+        plot_cfg = self.config.get("plot", {})
+        if not plot_cfg.get("save") and not plot_cfg.get("show"):
+            return
+
+        plt.figure(figsize=(10, 10))
+        
+        # Draw edges (Roads)
+        for (i, j) in G.edges:
+            plt.plot(
+                [coords[i, 0], coords[j, 0]], 
+                [coords[i, 1], coords[j, 1]], 
+                color='gray', linestyle='-', alpha=0.4, zorder=1
+            )
+
+        # Draw Wells (Index 1 onwards)
+        plt.scatter(
+            coords[1:, 0], coords[1:, 1], 
+            c='blue', s=30, label='Wells', zorder=2
+        )
+
+        # Draw Operations Center (Index 0)
+        plt.scatter(
+            coords[0, 0], coords[0, 1], 
+            c='red', marker='s', s=100, label='Ops Center', zorder=3
+        )
+
+        plt.title(f"Oilfield Infrastructure - Instance {instance_id}")
+        plt.xlabel("Meters (X)")
+        plt.ylabel("Meters (Y)")
+        plt.legend()
+        plt.grid(True, linestyle='--', alpha=0.6)
+        plt.axis("equal")
+
+        if plot_cfg.get("save"):
+            # Construct filename based on prefixes in general config if needed
+            out_dir = Path(self.config.get("output_dir", "instances"))
+            out_dir.mkdir(parents=True, exist_ok=True)
+            save_path = out_dir / f"spatial_map_{instance_id}.png"
+            plt.savefig(save_path, dpi=300)
+            print(f"Map saved to: {save_path}")
+
+        if plot_cfg.get("show"):
+            plt.show()
+
+        plt.close()
 
 
 class BatteryGenerator:

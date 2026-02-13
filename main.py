@@ -44,7 +44,7 @@ def run_packager(config_path):
 
         # 1. Generate Data
         wells = well_gen.generate()
-        dist_matrix, _ = spatial_gen.generate_distance_matrix()
+        dist_matrix, coords, G_obj = spatial_gen.generate_distance_matrix()
         bat_ids, bat_targets = bat_gen.generate(wells)
         zpl_gen.generate(zpl_file, p_name, b_name, d_name)
         
@@ -66,6 +66,9 @@ def run_packager(config_path):
             f.write(f"{dist_matrix.shape[0]}\n")
             for row in dist_matrix:
                 f.write(" ".join(f"{int(round(x))}" for x in row) + "\n")
+
+        # 5. Plotting (Optional)
+        spatial_gen.plot_graph(G_obj, coords, k)
 
         print(f"Packaged instance {k}: {param_file.name}, {bat_file.name}, {dist_file.name}, {z_name} generated.")
 
