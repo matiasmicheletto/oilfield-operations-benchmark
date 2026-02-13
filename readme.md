@@ -1,90 +1,58 @@
-# Oilfield Instance Generator
+# Oilfield Instance Generator & Packager
 
-A Python-based utility for generating synthetic oilfield datasets for MILP (Mixed-Integer Linear Programming) optimization and benchmarking. This tool provides two complementary scripts: one for generating well production and operational data, and another for creating realistic spatial configurations with road networks.
+A modular Python library for generating synthetic oilfield datasets tailored for MILP (Mixed-Integer Linear Programming) optimization. This tool consolidates statistical well generation, battery requirement modeling, and spatial road network synthesis into a single, automated pipeline.
 
 ## 🚀 Features
 
-### Instance Generation (`generate_instances.py`)
-* **Dynamic Distributions:** Define any NumPy-supported distribution (Uniform, Beta, LogNormal, etc.) for well properties via YAML.
-* **Correlated Variables:** Generate Risk and Priority values that correlate with production levels to simulate realistic field data.
-* **Automatic Scaling & Rounding:** Built-in support for scaling values (e.g., 0–1 to 0–100) and rounding to integers for MILP solver compatibility.
-* **Reproducibility:** Seed-based random number generation ensures the same instances can be recreated for research consistency.
+### 1. Well Generator (`WellGenerator`)
+* **Dynamic Distributions:** Configure LogNormal, Beta, or any NumPy distribution via YAML.
+* **Correlated Variables:** Realistic Risk and Priority values tied to production levels.
+* **Visual Diagnostics:** Automatically generates distribution dashboards (Histograms/Bar charts) to verify statistical integrity.
 
-### Spatial Network Generation (`generate_distance_matrix.py`)
-* **Clustered Well Placement:** Generates realistic spatial distributions with configurable clustering parameters.
-* **Road Network Synthesis:** Creates road networks based on Minimum Spanning Tree (MST) with detour factors and optional extra connections.
-* **Distance Matrix Output:** Computes and exports shortest-path distance matrices for routing optimization.
-* **Visualization:** Optional plotting of the spatial configuration and road network.
-* **Operations Center Placement:** Configurable placement of central operations hub.
+### 2. Spatial & Road Network (`SpatialGenerator`)
+* **Clustered Placement:** Simulates realistic field geography.
+* **Graph-Based Roads:** Built on Minimum Spanning Trees (MST) with configurable detour factors and redundancy edges.
+* **Shortest-Path Matrices:** Computes full routing distances between the Operations Center and all wells.
 
----
+### 3. Battery Logic (`BatteryGenerator`)
+* **Smart Assignment:** Evenly distributes wells to production batteries.
+* **Noisy Targets:** Calculates total battery requirements ($G_t$) by summing well production and adding Gaussian noise.
 
-## 🛠 Installation
-
-1. **Requirements:**
-   * Python 3.8+
-   * `numpy`
-   * `PyYAML`
-   * `networkx`
-   * `scipy`
-   * `matplotlib`
-
-2. **Setup:**
-   ```bash
-   pip install numpy pyyaml networkx scipy matplotlib
-   ```
-   
-   Or if you have a requirements.txt:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 4. Zimpl Model Generator (`ZPLGenerator`)
+* **Solver Ready:** Automatically writes `.zpl` files with relative paths to data files.
+* **Integrated Constraints:** Injects YAML limits (max loss, cost, crews) directly into the model.
 
 ---
 
-## 📖 Usage
+## 📁 Library Structure
+```
+oilfield-operations-benchmark/
+├── core.py              # Main logic for data generation and visualization
+├── main.py              # Entry point for running the packager
+├── LICENSE              # License information (GNU GPL v3)
+├── requirements.txt     # Python dependencies
+├── default_config.yaml  # Default configuration for instance generation
+└── README.md            # This documentation
+```
 
-### Generating Well Instances
+### Setup
+Ensure you have the required dependencies:
 
-To generate well production and operational data:
+`pip install numpy pyyaml networkx scipy matplotlib`
+
+Or install from [`requirements.txt`](requirements.txt):
+
+`pip install -r requirements.txt`
+
+### 📖 Usage
+To generate the entire dataset (Parameters, Batteries, Distances, Zimpl Models, and Plots):
 
 ```bash
-python generate_instances.py config.yaml
+python main.py [config.yaml]
 ```
 
-If no configuration file is provided, the script defaults to `default_config.yaml`:
+If no configuration is provided, it defaults to [`default_config.yaml`](default_config.yaml).
 
-```bash
-python generate_instances.py
-```
-
-The script will create an output directory (as specified in the YAML) containing `.dat` files with the following header:
-
-```
-ID    G    N    r    R    P    C    B
-```
-
-### Generating Spatial Networks
-
-To generate spatial well locations and road networks:
-
-```bash
-python generate_distance_matrix.py config.yaml
-```
-
-Similarly, if no configuration is provided:
-
-```bash
-python generate_distance_matrix.py
-```
-
-The script will:
-1. Generate clustered well locations within the specified area
-2. Create a road network connecting wells and the operations center
-3. Compute shortest-path distances between all locations
-4. Save the distance matrix to the specified output file
-5. Optionally display and/or save a visualization of the network
-
----
 
 ## ⚙️ Configuration Guide
 
@@ -99,9 +67,15 @@ general:
   num_instances: 10      # Number of instances to generate
   seed: 42               # Random seed (use null for non-deterministic)
   output_dir: "instances"
-  output_prefix: "instance"
-  n_wells: 50            # Number of wells in each instance
-  n_batteries: 2         # Number of production batteries
+  param_name_prefix: "parameters"  # Prefix for generated file names.
+  bat_name_prefix: "batteries"   # Prefix for generated file names.
+  dist_name_prefix: "distance" # File name for distance matrix output.
+  zpl_name_prefix: "model"     # Prefix for generated ZPL files.
+  n_wells: 50            # Number of wells in the instance.
+  n_batteries: 2         # Number of production batteries.
+  plot:
+    save: true  # Whether to save the plot of the spatial configuration.
+    show: false # Whether to display the plot interactively.
 ```
 
 **Key Parameters:**
@@ -120,6 +94,7 @@ rounding:
   risk: 0         # Risk factor
   priority: 0     # Priority index
   cost: 0         # Intervention cost
+  total_gross: 0   # Total gross production per battery
 ```
 
 **Recommendations:**
@@ -256,9 +231,6 @@ Controls well placement and road network generation:
 
 ```yaml
 spatial:
-  output_dir: "distances"
-  output_file_name: "distance_matrix.dat"
-  
   area_size_km: 20          # Square area side length (km)
   n_clusters: 4             # Number of well clusters
   cluster_radius_m: 600     # Std dev within clusters (meters)
@@ -301,21 +273,25 @@ Options:
 - `random_cluster`: Place at a random cluster centroid (realistic)
 - `center`: Place at geometric center of area (less realistic)
 
-#### Visualization
-
-```yaml
-  plot:
-    save: false   # Save plot to file
-    show: true    # Display plot interactively
-```
-
 ---
 
-## 📂 Output Formats
+---
+## 📂 Output Structure
+For each instance from 1 to `num_instances`, the following files are generated in the `instances/` directory:
+```
+instances/
+├── parameters_[num_wells]_[num_batteries]_[instance_id].dat/
+├── batteries_[num_wells]_[num_batteries]_[instance_id].dat/
+├── distance_[num_wells]_[num_batteries]_[instance_id].dat
+├── model_[num_wells]_[num_batteries]_[instance_id].zpl
+├── param_hist_[instance_id].png
+├── spatial_map_[instance_id].png
+└── well_stats_[instance_id].png
+```
 
-### Instance Data Files (`.dat`)
+### Parameters Data Files (`.dat`)
 
-Generated by `generate_instances.py`. Tab-separated files with the following columns:
+Tab-separated files with the following columns:
 
 | Column | Description | Typical Range |
 |--------|-------------|---------------|
@@ -337,16 +313,8 @@ ID	G	N	r	R	P	C	B
 ...
 ```
 
-**File naming convention:**
-```
-{output_prefix}_{n_wells}_{n_batteries}_{instance_number}.dat
-```
-
-Example: `instance_50_2_1.dat`
-
-### Distance Matrix Files (`.dat`)
-
-Generated by `generate_distance_matrix.py`. First line is the matrix dimension (including operations center), followed by the distance matrix:
+### Distance Matrix File
+A space-separated matrix where the entry at row `i` and column `j` represents the shortest road distance from the Operations Center to well `j`.
 
 ```
 51
@@ -362,77 +330,13 @@ Generated by `generate_distance_matrix.py`. First line is the matrix dimension (
 - Values are shortest-path distances in meters (rounded to integers)
 - Matrix is symmetric
 
-### Visualization Output
+### Battery File
+A tab-separated file with two columns:
+| Column | Description |
+|--------|-------------|
+| `BatteryID` | Unique battery identifier (1, 2, ...) |
+| `Target` | Total production target for the battery (sum of assigned wells + noise)
 
-If `plot.save: true`, generates `road_network.png` showing:
-- Well locations (blue circles)
-- Operations center (orange square)
-- Road network edges (gray lines)
-- Scale in meters
-
----
-
-## 🔧 Advanced Usage
-
-### Custom Distributions
-
-The dynamic sampling engine supports any NumPy random distribution. Examples:
-
-```yaml
-# Exponential
-distribution: exponential
-scale: 50
-
-# Gamma
-distribution: gamma
-shape: 2
-scale: 20
-
-# Triangular
-distribution: triangular
-left: 0
-mode: 50
-right: 100
-
-# Pareto
-distribution: pareto
-a: 3
-```
-
-**Parameter mapping:** The script automatically maps common aliases:
-- `mu` → `mean` (for lognormal)
-- `alpha`/`beta` → `a`/`b` (for beta distribution)
-
-### Generating Multiple Scenarios
-
-Create different configuration files for different scenarios:
-
-```bash
-python generate_instances.py config_high_risk.yaml
-python generate_instances.py config_low_production.yaml
-python generate_distance_matrix.py config_dense_network.yaml
-```
-
-### Integration Workflow
-
-Typical workflow for optimization studies:
-
-1. **Generate spatial configuration:**
-   ```bash
-   python generate_distance_matrix.py config.yaml
-   ```
-   Creates `distances/distance_matrix.dat`
-
-2. **Generate instance data:**
-   ```bash
-   python generate_instances.py config.yaml
-   ```
-   Creates `instances/instance_50_2_1.dat`, etc.
-
-3. **Use outputs in optimization model:**
-   - Load well data from `.dat` files
-   - Load distance matrix for routing constraints
-   - Apply limits and resources from config
 
 ---
 
@@ -462,28 +366,6 @@ Typical workflow for optimization studies:
 
 ---
 
-## 🐛 Troubleshooting
-
-### "Unknown distribution" error
-- Check that the distribution name matches NumPy's random API
-- Common distributions: `uniform`, `normal`, `lognormal`, `beta`, `gamma`, `exponential`
-
-### "Invalid parameters" error
-- Verify parameter names match NumPy requirements
-- Example: `normal` uses `loc` and `scale`, not `mean` and `std`
-
-### Distance matrix seems incorrect
-- Check that `area_size_km` and `cluster_radius_m` are reasonable
-- Verify detour factors are ≥ 1.0
-- Ensure `n_clusters` ≤ `n_wells`
-
-### Negative or invalid costs
-- Verify `w_r`, `w_p`, and `kappa` are positive
-- Check scaling factors if using [0,1] range for R and P
-- Adjust weights if costs exceed budget constraints
-
----
-
 ## 📝 License
 
 General Public License v3.0 (GPL-3.0)
@@ -497,82 +379,3 @@ Contributions are welcome! Please submit issues or pull requests on GitHub.
 For questions or support, please contact the maintainer at matias.micheletto@uns.edu.ar
 
 ---
-
-## 🔍 Example Configuration
-
-Here's a complete working example for a medium-scale oilfield study:
-
-```yaml
-general:
-  num_instances: 20
-  seed: 42
-  output_dir: "instances"
-  output_prefix: "field_study"
-  n_wells: 100
-  n_batteries: 3
-
-rounding:
-  production: 0
-  regime: 0
-  risk: 0
-  priority: 0
-  cost: 0
-
-scaling:
-  risk: 100
-  priority: 100
-  cost: 1
-  regime: 100
-
-production:
-  gross:
-    distribution: lognormal
-    mu: 4.0
-    sigma: 0.7
-  net_ratio:
-    distribution: beta
-    alpha: 2
-    beta: 3
-  regime:
-    distribution: beta
-    alpha: 4
-    beta: 2
-
-risk_priority:
-  risk:
-    rho_g: 0.8
-    noise_std: 0.05
-  priority:
-    rho: 0.7
-    noise_std: 0.05
-  cost:
-    w_r: 10
-    w_p: 5
-    kappa: 2
-
-limits:
-  max_loss: 1000
-  max_cost: 2000
-  max_quantity: 15
-
-resources:
-  crews: 3
-
-spatial:
-  output_dir: "distances"
-  output_file_name: "distance_matrix.dat"
-  area_size_km: 25
-  n_clusters: 5
-  cluster_radius_m: 500
-  road_network:
-    extra_edge_ratio: 0.2
-    detour_min: 1.2
-    detour_max: 1.8
-  plot:
-    save: true
-    show: false
-  operations_center:
-    location: "random_cluster"
-```
-
-This configuration generates 20 instances of a 100-well field with realistic production distributions, correlated risk/priority values, and a spatially realistic road network.

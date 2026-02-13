@@ -2,7 +2,7 @@ general:  # ---------------------------------------------------------
           # General settings controlling instance generation
           # ---------------------------------------------------------
 
-  num_instances: 10      # Number of independent instances to generate.
+  num_instances: 5       # Number of independent instances to generate.
                          # This includes well parameters, battery parameters and distance matrix
   
   seed: 42               # Random seed for reproducibility.
