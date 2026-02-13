@@ -71,12 +71,99 @@ class WellGenerator:
             "P": process(P, "priority"),
             "C": process(C, "cost")
         }
+    
+    def plot_distributions(self, data, instance_id):
+        plot_cfg = self.config["general"].get("plot", {})
+        if not plot_cfg.get("save") and not plot_cfg.get("show"):
+            return
+        
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle(f"Well Parameters Distribution - Instance {instance_id}", fontsize=16)
+
+        well_ids = np.arange(1, len(data["G"]) + 1)
+
+        # 1. Stacked Bar Chart: Gross and Net
+        # We plot Gross first, then Net on top (or as a subset)
+        # To show Net as a portion of Gross:
+        axes[0, 0].bar(well_ids, data["G"], label='Gross', color='lightgray')
+        axes[0, 0].bar(well_ids, data["N"], label='Net', color='green', alpha=0.7)
+        axes[0, 0].set_title("Gross vs Net Production")
+        axes[0, 0].set_ylabel("Volume (m3/day)")
+        axes[0, 0].legend()
+
+        # 2. Bar Chart: Regime
+        axes[0, 1].bar(well_ids, data["r"], color='blue', alpha=0.6)
+        axes[0, 1].set_title("Current Regime (%)")
+        axes[0, 1].set_ylim(0, self.config["scaling"].get("regime", 100))
+
+        # 3. Bar Chart: Risk
+        axes[1, 0].bar(well_ids, data["R"], color='red', alpha=0.6)
+        axes[1, 0].set_title("Risk Factor")
+        axes[1, 0].set_ylim(0, self.config["scaling"].get("risk", 100))
+
+        # 4. Bar Chart: Priority
+        axes[1, 1].bar(well_ids, data["P"], color='gold', alpha=0.7)
+        axes[1, 1].set_title("Priority Level")
+        axes[1, 1].set_ylim(0, self.config["scaling"].get("priority", 100))
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+        if plot_cfg.get("save"):
+            out_dir = Path(self.config["general"].get("output_dir", "instances"))
+            save_path = out_dir / f"well_stats_{instance_id}.png"
+            plt.savefig(save_path, dpi=300)
+            print(f"Stats plot saved to: {save_path}")
+
+        if plot_cfg.get("show"):
+            plt.show()
+
+        plt.close()
+
+    def plot_histograms(self, data, instance_id):
+        plot_cfg = self.config["general"].get("plot", {})
+        if not plot_cfg.get("save") and not plot_cfg.get("show"):
+            return
+        
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle(f"Statistical Distributions - Instance {instance_id}", fontsize=16)
+
+        # 1. Gross Production (LogNormal)
+        axes[0, 0].hist(data["G"], bins=15, color='lightgray', edgecolor='black')
+        axes[0, 0].set_title("Gross Production (Expect LogNormal)")
+        axes[0, 0].set_xlabel("m3/day")
+
+        # 2. Regime (Beta)
+        axes[0, 1].hist(data["r"], bins=15, color='blue', alpha=0.6, edgecolor='black')
+        axes[0, 1].set_title("Regime (Expect Beta)")
+        axes[0, 1].set_xlabel("Percentage")
+
+        # 3. Risk (Correlated)
+        axes[1, 0].hist(data["R"], bins=15, color='red', alpha=0.6, edgecolor='black')
+        axes[1, 0].set_title("Risk (Correlated with Gross)")
+
+        # 4. Priority (Correlated)
+        axes[1, 1].hist(data["P"], bins=15, color='gold', alpha=0.7, edgecolor='black')
+        axes[1, 1].set_title("Priority (Correlated with Net)")
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+        if plot_cfg.get("save"):
+            out_dir = Path(self.config["general"].get("output_dir", "instances"))
+            save_path = out_dir / f"params_hist_{instance_id}.png"
+            plt.savefig(save_path, dpi=300)
+            print(f"Hist plot saved to: {save_path}")
+
+        if plot_cfg.get("show"):
+            plt.show()
+
+        plt.close()
 
 
 class SpatialGenerator:
     def __init__(self, rng, config):
         self.rng = rng
         self.config = config["spatial"]
+        self.general_config = config["general"]
         self.n_wells = config["general"]["n_wells"]
 
     def generate_distance_matrix(self):
@@ -130,7 +217,7 @@ class SpatialGenerator:
         return G
 
     def plot_graph(self, G, coords, instance_id):
-        plot_cfg = self.config.get("plot", {})
+        plot_cfg = self.general_config.get("plot", {})
         if not plot_cfg.get("save") and not plot_cfg.get("show"):
             return
 
@@ -164,8 +251,7 @@ class SpatialGenerator:
         plt.axis("equal")
 
         if plot_cfg.get("save"):
-            # Construct filename based on prefixes in general config if needed
-            out_dir = Path(self.config.get("output_dir", "instances"))
+            out_dir = Path(self.general_config.get("output_dir", "instances"))
             out_dir.mkdir(parents=True, exist_ok=True)
             save_path = out_dir / f"spatial_map_{instance_id}.png"
             plt.savefig(save_path, dpi=300)

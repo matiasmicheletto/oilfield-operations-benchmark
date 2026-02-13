@@ -68,6 +68,8 @@ def run_packager(config_path):
                 f.write(" ".join(f"{int(round(x))}" for x in row) + "\n")
 
         # 5. Plotting (Optional)
+        well_gen.plot_distributions(wells, k)
+        well_gen.plot_histograms(wells, k)
         spatial_gen.plot_graph(G_obj, coords, k)
 
         print(f"Packaged instance {k}: {param_file.name}, {bat_file.name}, {dist_file.name}, {z_name} generated.")
