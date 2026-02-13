@@ -3,16 +3,30 @@ general:  # ---------------------------------------------------------
           # ---------------------------------------------------------
 
   num_instances: 10      # Number of independent instances to generate.
-                         # Recommended:
-                         #   5–20 for testing
-                         #   20–100 for benchmarking studies
+                         # This includes well parameters, battery parameters and distance matrix
+  
   seed: 42               # Random seed for reproducibility.
                          # Use a fixed value for research experiments.
                          # Set to null or remove for non-deterministic runs.
+  
   output_dir: "instances"   # Directory where generated instances are stored.
-  output_prefix: "instance"  # Prefix for generated file names.
-                             # Files will be named like:
-                             # instance_<wells>_<batteries>_<id>.dat
+
+  param_name_prefix: "parameters"  # Prefix for generated file names.
+                                   # Files will be named like:
+                                   # parameters_<wells>_<batteries>_<id>.dat
+  
+  bat_name_prefix: "batteries"   # Prefix for generated file names.
+                                 # Files will be named like:
+                                 # batteries_<wells>_<batteries>_<id>.dat
+
+  dist_name_prefix: "distance" # File name for distance matrix output.
+                               # The distance matrix will be saved as:
+                               # distance_<wells>_<batteries>_<id>.dat
+
+  zpl_name_prefix: "model"     # Prefix for generated ZPL files.
+                               # Files will be named like:
+                               # model_<wells>_<batteries>_<id>.zpl
+
 
   n_wells: 50            # Number of wells in the instance.
                          # Controls problem size.
@@ -50,6 +64,9 @@ rounding:  # --------------------------------------------------------
   cost: 0         # Intervention cost rounding.
                   # 0 for integer MILP models.
                   # 2 if representing monetary values.
+
+  total_gross: 0  # Total gross production rounding.
+                  # Should be consistent with production rounding and scaling.
 
 
 scaling:  # ---------------------------------------------------------
@@ -153,6 +170,14 @@ risk_priority:  # ---------------------------------------------------
     kappa: 2          # Base intervention cost (fixed cost component).          
 
 
+batteries:  # ------------------------------------------------------
+            # Parameters related to gross production batteries
+            # ------------------------------------------------------
+  
+  noise_std: 0.1  # Std deviation noise.
+                  # Perturbations for gross production requirement.
+                  
+
 limits:  # ----------------------------------------------------------
          # Operational or modeling constraints
          # Used in optimization stage (not generation).
@@ -180,9 +205,6 @@ resources:  # -------------------------------------------------------
 spatial:  # -------------------------------------------------------
           # Spatial configuration parameters
           # -------------------------------------------------------
-
-  output_dir: "distances"                 # Directory for spatial output files (e.g., distance matrix).
-  output_file_name: "distance_matrix.dat" # File name for distance matrix output.
 
   area_size_km: 20              # Square area side length (km)
                                 # Controls spatial density of wells.
