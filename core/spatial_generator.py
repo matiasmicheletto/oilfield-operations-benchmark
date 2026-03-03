@@ -13,6 +13,7 @@ class SpatialGenerator:
         self.rng = rng
         self.config = config
         self.size = config["spatial"]["grid_size"]
+        self.ops_center = None
 
     # ------------------------------------------------------------------
     # Terrain
@@ -48,10 +49,23 @@ class SpatialGenerator:
         return wells.astype(int)
 
     # ------------------------------------------------------------------
+    # Ops Center Placement
+    # ------------------------------------------------------------------
+    def _place_ops_center(self):
+        """Pick a random position near the grid centre (within ~12% radius)."""
+        center = self.size // 2
+        spread = self.size // 8
+        r = int(self.rng.integers(center - spread, center + spread + 1))
+        c = int(self.rng.integers(center - spread, center + spread + 1))
+        return (r, c)
+
+    # ------------------------------------------------------------------
     # Road Network Growth (corridor reuse)
     # ------------------------------------------------------------------
     def build_network(self, cost_map, wells):
-        ops_center = (self.size // 10, self.size // 10)
+        if self.ops_center is None:
+            self.ops_center = self._place_ops_center()
+        ops_center = self.ops_center
 
         wells_sorted = sorted(
             wells,
@@ -84,7 +98,7 @@ class SpatialGenerator:
         n = len(wells)
         D = np.zeros((n + 1, n + 1))
 
-        depot = (self.size // 10, self.size // 10)
+        depot = self.ops_center if self.ops_center is not None else self._place_ops_center()
         nodes = [depot] + [tuple(w) for w in wells]
 
         mcp = MCP_Geometric(cost_map)
