@@ -7,6 +7,7 @@ from pathlib import Path
 from core.well_generator import WellGenerator
 from core.battery_generator import BatteryGenerator
 from core.zpl_generator import ZPLGenerator
+from core.spatial_generator import SpatialGenerator
 
 
 def load_config(path: str) -> dict:
@@ -30,6 +31,7 @@ def run_packager(config_path):
     
     well_gen = WellGenerator(rng, config)
     bat_gen = BatteryGenerator(rng, config)
+    spatial_gen = SpatialGenerator(rng, config)
     zpl_gen = ZPLGenerator(config)
 
     for k in range(1, gen_cfg["num_instances"] + 1):
@@ -49,6 +51,11 @@ def run_packager(config_path):
         wells = well_gen.generate()
         bat_ids, bat_targets = bat_gen.generate(wells)
         zpl_gen.generate(zpl_file, p_name, b_name, d_name)
+
+        elev, cost_map = spatial_gen.generate_terrain()
+        well_positions = spatial_gen.generate_well_positions()
+        ops_center, paths = spatial_gen.build_network(cost_map, well_positions)
+        distance_matrix = spatial_gen.compute_distance_matrix(cost_map, well_positions)
         
         # 2. Export Parameters
         with open(param_file, "w") as f:
@@ -64,11 +71,15 @@ def run_packager(config_path):
                 f.write(f"{i+1}\t{target}\n")
 
         # 4. Export Distance Matrix
-        # ... (TODO)
+        with open(dist_file, "w") as f:
+            f.write("Distance Matrix\n")
+            for row in distance_matrix:
+                f.write("\t".join(map(lambda x: f"{int(round(x))}", row)) + "\n")
 
         # 5. Plotting (Optional)
         well_gen.plot_distributions(wells, k)
         well_gen.plot_histograms(wells, k)
+        spatial_gen.plot_network(elev, well_positions, paths, ops_center, k)
 
         print(f"Packaged instance {k}: {param_file.name}, {bat_file.name}, {dist_file.name}, {z_name} generated.")
 

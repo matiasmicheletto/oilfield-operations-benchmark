@@ -209,3 +209,9 @@ resources:  # -------------------------------------------------------
                       # Typically small (1–5).
                       # Limits simultaneous operations.
 
+spatial: # -------------------------------------------------------
+         # Parameters for spatial distribution of wells and batteries
+         # -------------------------------------------------------
+  grid_size: 300      # Size of the spatial grid (e.g., 300x300 units).
+                      # Controls the area over which wells and batteries are distributed.
+                      # Larger → more spatial dispersion.
