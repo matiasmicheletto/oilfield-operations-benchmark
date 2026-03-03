@@ -27,7 +27,12 @@ A modular Python library for generating synthetic oilfield datasets tailored for
 ## 📁 Library Structure
 ```
 oilfield-operations-benchmark/
-├── core.py              # Main logic for data generation and visualization
+├── core/
+│   ├── battery_generator.py  # Battery assignment and target generation
+│   ├── road_generator.py     # Standalone road network prototype/reference
+│   ├── spatial_generator.py  # Terrain, well placement, road network, distance matrix
+│   ├── well_generator.py     # Well parameter sampling and visualization
+│   └── zpl_generator.py     # Zimpl (.zpl) model file writer
 ├── main.py              # Entry point for running the packager
 ├── LICENSE              # License information (GNU GPL v3)
 ├── requirements.txt     # Python dependencies
@@ -38,7 +43,7 @@ oilfield-operations-benchmark/
 ### Setup
 Ensure you have the required dependencies:
 
-`pip install numpy pyyaml networkx scipy matplotlib`
+`pip install numpy pyyaml networkx scipy matplotlib scikit-image`
 
 Or install from [`requirements.txt`](requirements.txt):
 
@@ -211,6 +216,18 @@ risk_priority:
 
 **Note:** If R and P are scaled (e.g., to 0–100), adjust weights accordingly.
 
+### Battery Noise
+
+Controls the noise applied to battery production targets:
+
+```yaml
+batteries:
+  noise_std: 0.1  # Gaussian noise (as a fraction) added to the sum of assigned
+                  # well production when computing each battery's target G_t.
+                  # 0.0 → deterministic target (exact sum)
+                  # 0.1 → ±10% typical deviation
+```
+
 ### Limits & Resources
 
 Operational constraints (used in optimization, not generation):
@@ -227,51 +244,19 @@ resources:
 
 ### Spatial Configuration
 
-Controls well placement and road network generation:
+Controls the grid size used for terrain generation, well placement, and road network synthesis:
 
 ```yaml
 spatial:
-  area_size_km: 20          # Square area side length (km)
-  n_clusters: 4             # Number of well clusters
-  cluster_radius_m: 600     # Std dev within clusters (meters)
+  grid_size: 300      # Side length of the square spatial grid (in grid units).
+                      # Controls the area over which wells are distributed.
+                      # Larger → more spatial dispersion.
 ```
 
-**Spatial Distribution Parameters:**
-- `area_size_km`: Larger values → more spread out wells
-- `n_clusters`: 
-  - `1` → all wells in one cluster (high spatial correlation)
-  - `n_wells` → each well separate (no spatial correlation)
-- `cluster_radius_m`: Smaller → tighter clusters
-
-#### Road Network
-
-```yaml
-  road_network:
-    extra_edge_ratio: 0.2   # Extra edges beyond MST (0–1)
-    detour_min: 1.2         # Min road/Euclidean ratio
-    detour_max: 1.8         # Max road/Euclidean ratio
-```
-
-**Road Network Algorithm:**
-1. Generate Minimum Spanning Tree (MST) connecting all locations
-2. Apply detour factors to simulate non-straight roads
-3. Add extra edges based on `extra_edge_ratio` for network redundancy
-
-**Detour factors:**
-- `1.0` = perfectly straight roads
-- `1.2–1.8` = realistic road networks
-- Higher values = more winding/indirect routes
-
-#### Operations Center
-
-```yaml
-  operations_center:
-    location: "random_cluster"  # or "center"
-```
-
-Options:
-- `random_cluster`: Place at a random cluster centroid (realistic)
-- `center`: Place at geometric center of area (less realistic)
+**Notes:**
+- Wells are placed in 5 clusters randomly distributed across the grid.
+- Roads are built incrementally using a minimum-cost path algorithm (`MCP_Geometric`) with corridor reuse: once a road is paved, subsequent wells snap to existing corridors to form a realistic branching network.
+- The Operations Center is placed randomly near the geometric centre of the grid (within ±`grid_size/8` of centre) to simulate a central depot.
 
 ---
 
@@ -280,13 +265,13 @@ Options:
 For each instance from 1 to `num_instances`, the following files are generated in the `instances/` directory:
 ```
 instances/
-├── parameters_[num_wells]_[num_batteries]_[instance_id].dat/
-├── batteries_[num_wells]_[num_batteries]_[instance_id].dat/
+├── parameters_[num_wells]_[num_batteries]_[instance_id].dat
+├── batteries_[num_wells]_[num_batteries]_[instance_id].dat
 ├── distance_[num_wells]_[num_batteries]_[instance_id].dat
 ├── model_[num_wells]_[num_batteries]_[instance_id].zpl
-├── param_hist_[instance_id].png
-├── spatial_map_[instance_id].png
-└── well_stats_[instance_id].png
+├── well_bar_[instance_id].png
+├── well_hist_[instance_id].png
+└── spatial_network_[instance_id].png
 ```
 
 ### Parameters Data Files (`.dat`)
@@ -317,7 +302,6 @@ ID	G	N	r	R	P	C	B
 A space-separated matrix where the entry at row `i` and column `j` represents the shortest road distance from the Operations Center to well `j`.
 
 ```
-51
 0 1245 2103 1876 ...
 1245 0 987 1543 ...
 2103 987 0 1234 ...
