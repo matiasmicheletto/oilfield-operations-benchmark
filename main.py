@@ -3,7 +3,11 @@ import os
 import yaml
 import numpy as np
 from pathlib import Path
-from core import WellGenerator, SpatialGenerator, BatteryGenerator, ZPLGenerator
+
+from core.well_generator import WellGenerator
+from core.battery_generator import BatteryGenerator
+from core.zpl_generator import ZPLGenerator
+
 
 def load_config(path: str) -> dict:
     path = Path(path)
@@ -25,7 +29,6 @@ def run_packager(config_path):
     rng = np.random.default_rng(gen_cfg.get("seed", 42))
     
     well_gen = WellGenerator(rng, config)
-    spatial_gen = SpatialGenerator(rng, config)
     bat_gen = BatteryGenerator(rng, config)
     zpl_gen = ZPLGenerator(config)
 
@@ -44,7 +47,6 @@ def run_packager(config_path):
 
         # 1. Generate Data
         wells = well_gen.generate()
-        dist_matrix, coords, G_obj = spatial_gen.generate_distance_matrix()
         bat_ids, bat_targets = bat_gen.generate(wells)
         zpl_gen.generate(zpl_file, p_name, b_name, d_name)
         
@@ -61,16 +63,12 @@ def run_packager(config_path):
             for i, target in enumerate(bat_targets):
                 f.write(f"{i+1}\t{target}\n")
 
-        # 4. Export Distances
-        with open(dist_file, "w") as f:
-            f.write(f"{dist_matrix.shape[0]}\n")
-            for row in dist_matrix:
-                f.write(" ".join(f"{int(round(x))}" for x in row) + "\n")
+        # 4. Export Distance Matrix
+        # ... (TODO)
 
         # 5. Plotting (Optional)
         well_gen.plot_distributions(wells, k)
         well_gen.plot_histograms(wells, k)
-        spatial_gen.plot_graph(G_obj, coords, k)
 
         print(f"Packaged instance {k}: {param_file.name}, {bat_file.name}, {dist_file.name}, {z_name} generated.")
 

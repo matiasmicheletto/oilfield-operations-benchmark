@@ -1,0 +1,78 @@
+class ZPLGenerator:
+    def __init__(self, config):
+        self.config = config
+
+    def generate(self, output_path, param_file, bat_file, dist_file):
+        # Extract constants from config
+        limits = self.config.get("limits", {})
+        res = self.config.get("resources", {})
+        
+        # Zimpl content with dynamic file paths
+        zpl_content = f"""# Auto-generated Zimpl model for {param_file}
+# Sets and Data Files
+set P := {{ read "{param_file}" as "<1n>" skip 1 }};
+set B := {{ read "{bat_file}" as "<1n>" skip 1 }};
+
+# Parameters
+param G[P]   := read "{param_file}" as "<1n> 2n" skip 1;
+param N[P]   := read "{param_file}" as "<1n> 3n" skip 1;
+param R[P]   := read "{param_file}" as "<1n> 4n" skip 1;
+param C[P]   := read "{param_file}" as "<1n> 7n" skip 1;
+param Bat[P] := read "{param_file}" as "<1n> 8n" skip 1;
+
+param D[P*P] := read "{dist_file}" as "n+" skip 1;
+param Gpt[B] := read "{bat_file}" as "<1n> 2n" skip 1;
+
+# Bounds from YAML
+param maxloss := {limits.get('max_loss', 500)};
+param maxcost := {limits.get('max_cost', 900)};
+param maxquantity := {limits.get('max_quantity', 9)};
+param crews := {res.get('crews', 1)};
+
+# Variables
+var newregime[P] >= 0 <= 100;
+var z[P] binary;
+var x[P*P] binary;
+var y[P] >= 0 <= card(P);
+
+# Objectives
+var distance >= 0;
+var loss >= 0;
+
+# Objective Function
+minimize objfunc: distance;
+
+# Constraints
+subto lossbound: loss <= maxloss;
+subto costbound: cost <= maxcost;
+subto quantitybound: (sum <i> in P: z[i]) <= maxquantity;
+
+subto grossproduction: forall <k> in B:
+    sum <i> in P with i > 0 and Bat[i] == k: G[i] * newregime[i] / 100 == Gpt[k];
+
+subto linkzwupper: forall <i> in P with i > 0:
+    newregime[i] >= R[i] - 100 * z[i];
+subto linkzwlower: forall <i> in P with i > 0:
+    newregime[i] <= R[i] + 100 * z[i];
+
+subto routeentry: forall <i> in P with i > 0:
+    sum <j> in P: x[j,i] == z[i];
+subto routeexit: forall <i> in P with i > 0:
+    sum <j> in P: x[i,j] == z[i];
+
+subto departure: sum <i> in P with i > 0: x[0,i] == crews;
+subto arrival:   sum <i> in P with i > 0: x[i,0] == crews;
+
+subto flow: forall <i> in P with i > 0:
+    sum <j> in P: x[j,i] == sum <j> in P: x[i,j];
+
+subto mtz: forall <i,j> in P*P with i != j and i > 0 and j > 0:
+    y[i] + 1 <= y[j] + card(P) * (1 - x[i,j]);
+
+subto defdistance: distance == sum <i,j> in P*P: D[i,j] * x[i,j];
+subto defloss: loss == sum <i> in P: (G[i] - N[i]) * newregime[i] / 100;
+
+subto nonsensex: forall <i> in P: x[i,i] == 0;
+"""
+        with open(output_path, "w") as f:
+            f.write(zpl_content)
