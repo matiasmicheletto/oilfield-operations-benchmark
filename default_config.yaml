@@ -218,7 +218,7 @@ spatial: # -------------------------------------------------------
   smooth_sigma: 2   # Standard deviation for Gaussian smoothing of the distance matrix.
                     # Higher values → smoother distance variations, less spatial heterogeneity.
 
-  num_peaks: 6      # Number of synthetic terrain peaks used to shape elevation.
+  num_peaks: 5      # Number of synthetic terrain peaks used to shape elevation.
                     # Increase for more rugged terrain with more local highs/lows.
 
   elevation_amplitude: 100  # Global terrain height scale.
@@ -233,6 +233,8 @@ spatial: # -------------------------------------------------------
   show_plot: false  # Whether to display the plot interactively.
 
   
-  max_dist_fraction: 0.25,  # max well-to-well distance as fraction of grid size
-  min_per_well: 1,          # minimum lateral connections per well
-  max_per_well: 2           # maximum lateral connections per well
+  max_dist_fraction: 0.25   # Max well-to-well distance as fraction of grid size.
+  min_per_well: 2           # Minimum lateral connections per well.
+  max_per_well: 3           # Maximum lateral connections per well.
+  max_path_factor: 1.8      # Max feasible path cost as multiplier of euclidean distance.
+  connector_reuse_penalty: 3.0  # Penalizes reusing primary roads when building secondary links.

@@ -1,5 +1,3 @@
-# core/spatial_generator.py
-
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -81,6 +79,83 @@ class SpatialGenerator:
         r = int(self.rng.integers(center - spread, center + spread + 1))
         c = int(self.rng.integers(center - spread, center + spread + 1))
         return (r, c)
+    
+    # ------------------------------------------------------------------
+    # Well-to-Depot Network (with corridor reuse)
+    # ------------------------------------------------------------------
+    def _build_well_connectors(self, cost_map, wells, existing_road_mask=None):
+        size = self.config["grid_size"]
+        max_dist_cfg = float(self.config.get("max_dist_fraction", 0.25))
+        max_dist = max_dist_cfg * size if max_dist_cfg <= 1.0 else max_dist_cfg
+        min_links = max(0, int(self.config.get("min_per_well", 2)))
+        max_links = max(min_links, int(self.config.get("max_per_well", 3)))
+        max_path_factor = float(self.config.get("max_path_factor", 1.8))
+        reuse_penalty = float(self.config.get("connector_reuse_penalty", 3.0))
+
+        connectors = []
+        wells = np.array(wells)
+        n = len(wells)
+        degrees = np.zeros(n, dtype=int)
+        used_pairs = set()
+
+        connector_cost = cost_map.copy()
+        if existing_road_mask is not None:
+            connector_cost = connector_cost + existing_road_mask.astype(float) * np.mean(cost_map) * reuse_penalty
+
+        for i in range(n):
+            if degrees[i] >= max_links:
+                continue
+
+            dists = np.linalg.norm(wells - wells[i], axis=1)
+            candidates = np.where((dists > 0) & (dists < max_dist))[0]
+
+            if len(candidates) == 0:
+                continue
+
+            # Prioritize close neighbors to increase feasible secondary links.
+            candidates = candidates[np.argsort(dists[candidates])]
+
+            for j in candidates:
+                if degrees[i] >= max_links:
+                    break
+                if i == j or degrees[j] >= max_links:
+                    continue
+
+                pair = (min(i, j), max(i, j))
+                if pair in used_pairs:
+                    continue
+
+                start = tuple(wells[i])
+                end = tuple(wells[j])
+
+                mcp = MCP_Geometric(connector_cost)
+                costs, _ = mcp.find_costs(starts=[start], ends=[end])
+                path_cost = costs[end]
+
+                if not np.isfinite(path_cost):
+                    continue
+
+                # Scale admissible path cost by euclidean separation.
+                euclid_dist = max(dists[j], 1.0)
+                max_path_cost = euclid_dist * max_path_factor
+                if path_cost > max_path_cost and degrees[i] >= min_links:
+                    continue
+
+                path = mcp.traceback(end)
+                connectors.append(path)
+                used_pairs.add(pair)
+                degrees[i] += 1
+                degrees[j] += 1
+
+                # Encourage connector corridor reuse among secondary roads.
+                for r, c in path:
+                    connector_cost[r, c] = 0.001
+
+                if degrees[i] >= max_links:
+                    break
+
+        return connectors
+
 
     # ------------------------------------------------------------------
     # Road Network Growth (corridor reuse)
@@ -97,6 +172,7 @@ class SpatialGenerator:
 
         dynamic_cost = cost_map.copy()
         all_paths = []
+        primary_road_mask = np.zeros_like(cost_map, dtype=bool)
 
         for well in wells_sorted:
             start_node = tuple(well)
@@ -111,6 +187,15 @@ class SpatialGenerator:
             # Corridor reuse
             for r, c in path:
                 dynamic_cost[r, c] = 0.001
+                primary_road_mask[r, c] = True
+
+        connectors = self._build_well_connectors(cost_map, wells, existing_road_mask=primary_road_mask)
+
+        for path in connectors:
+            for r, c in path:
+                dynamic_cost[r, c] = 0.001
+
+        all_paths.extend(connectors)
 
         return ops_center, all_paths
     
