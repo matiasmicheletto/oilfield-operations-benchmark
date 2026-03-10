@@ -11,7 +11,7 @@ A modular Python library for generating synthetic oilfield datasets tailored for
 
 ### 2. Spatial & Road Network (`SpatialGenerator`)
 * **Clustered Placement:** Simulates realistic field geography.
-* **Graph-Based Roads:** Built on Minimum Spanning Trees (MST) with configurable detour factors and redundancy edges.
+* **Graph-Based Roads:** Builds primary well-to-operations-center roads and secondary well-to-well connectors with corridor reuse.
 * **Shortest-Path Matrices:** Computes full routing distances between the Operations Center and all wells.
 
 ### 3. Battery Logic (`BatteryGenerator`)
@@ -58,6 +58,15 @@ python main.py [config.yaml]
 
 If no configuration is provided, it defaults to [`default_config.yaml`](default_config.yaml).
 
+You can also override parameters from CLI using dot notation:
+
+```bash
+python main.py default_config.yaml \
+  --set general.num_instances=2 \
+  --set spatial.num_peaks=10 \
+  --set spatial.elevation_amplitude=160
+```
+
 
 ## ⚙️ Configuration Guide
 
@@ -78,9 +87,8 @@ general:
   zpl_name_prefix: "model"     # Prefix for generated ZPL files.
   n_wells: 50            # Number of wells in the instance.
   n_batteries: 2         # Number of production batteries.
-  plot:
-    save: true  # Whether to save the plot of the spatial configuration.
-    show: false # Whether to display the plot interactively.
+  save_plot: true        # Global flag to save figures.
+  show_plot: false       # Global flag to show figures interactively.
 ```
 
 **Key Parameters:**
@@ -244,18 +252,33 @@ resources:
 
 ### Spatial Configuration
 
-Controls the grid size used for terrain generation, well placement, and road network synthesis:
+Controls terrain generation, well placement, road-network growth, and plotting:
 
 ```yaml
 spatial:
-  grid_size: 300      # Side length of the square spatial grid (in grid units).
-                      # Controls the area over which wells are distributed.
-                      # Larger → more spatial dispersion.
+  grid_size: 300
+  n_clusters: 3
+
+  # Terrain morphology
+  seed_resolution: 20
+  smooth_sigma: 2
+  num_peaks: 5
+  elevation_amplitude: 100
+  cost_exponent: 2
+
+  # Secondary roads (well-to-well connectors)
+  max_dist_fraction: 0.25
+  min_per_well: 2
+  max_per_well: 3
+  max_path_factor: 1.8
+  connector_reuse_penalty: 3.0
 ```
 
 **Notes:**
-- Wells are placed in 5 clusters randomly distributed across the grid.
-- Roads are built incrementally using a minimum-cost path algorithm (`MCP_Geometric`) with corridor reuse: once a road is paved, subsequent wells snap to existing corridors to form a realistic branching network.
+- Terrain is generated from low-resolution random fields plus configurable Gaussian peaks (`num_peaks`, `elevation_amplitude`).
+- Roads are built with `MCP_Geometric`: primary links connect wells to the operations center, then secondary well-to-well connectors add loops and route alternatives.
+- Secondary connectors can be tuned with `max_dist_fraction`, `min_per_well`, `max_per_well`, and `max_path_factor`.
+- `connector_reuse_penalty` discourages connector paths from fully collapsing into primary roads.
 - The Operations Center is placed randomly near the geometric centre of the grid (within ±`grid_size/8` of centre) to simulate a central depot.
 
 ---
@@ -318,8 +341,8 @@ A space-separated matrix where the entry at row `i` and column `j` represents th
 A tab-separated file with two columns:
 | Column | Description |
 |--------|-------------|
-| `BatteryID` | Unique battery identifier (1, 2, ...) |
-| `Target` | Total production target for the battery (sum of assigned wells + noise)
+| `ID` | Unique battery identifier (1, 2, ...) |
+| `Gpt` | Total gross-production target for the battery (sum of assigned wells + noise)
 
 
 ---
@@ -339,8 +362,8 @@ A tab-separated file with two columns:
 ### For Realistic Scenarios
 - Use `lognormal` for production (realistic heavy-tailed distribution)
 - Set correlation `rho` between 0.5–0.9 for risk/priority
-- Use 2–5 clusters with radius 300–1000m
-- Set detour factors between 1.2–1.8
+- Use 2–5 spatial clusters (`spatial.n_clusters`)
+- Tune connector density with `spatial.max_per_well` and `spatial.max_dist_fraction`
 
 ### For Benchmarking
 - Generate 20–100 instances per configuration

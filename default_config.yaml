@@ -38,6 +38,12 @@ general:  # ---------------------------------------------------------
                          # Wells are assigned evenly across batteries.
                          # Usually 1–5 for small/medium studies.
 
+  save_plot: true        # Global figure output flag.
+                         # If true, figures are saved to output_dir.
+
+  show_plot: false       # Global interactive display flag.
+                         # If true, figures are shown on screen.
+
 
 rounding:  # --------------------------------------------------------
            # Number of decimal places for each generated variable.
@@ -227,14 +233,12 @@ spatial: # -------------------------------------------------------
   cost_exponent: 2  # Exponent for distance-based cost scaling.
                     # Higher values → more penalization of distant wells.
     
-  save_plot: true   # Whether to save the plot of the spatial configuration.
-                    # If true, the plot will be saved to a file in the output directory.
-  
-  show_plot: false  # Whether to display the plot interactively.
-
-  
   max_dist_fraction: 0.25   # Max well-to-well distance as fraction of grid size.
+
   min_per_well: 2           # Minimum lateral connections per well.
+  
   max_per_well: 3           # Maximum lateral connections per well.
+  
   max_path_factor: 1.8      # Max feasible path cost as multiplier of euclidean distance.
+  
   connector_reuse_penalty: 3.0  # Penalizes reusing primary roads when building secondary links.

@@ -96,8 +96,8 @@ class WellGenerator:
 
     def _plot_engine(self, data, instance_id, mode="bar"):
         """Shared plotting logic for both bars and histograms."""
-        plot_cfg = self.config["general"].get("plot", {})
-        if not plot_cfg.get("save") and not plot_cfg.get("show"):
+        plot_cfg = self.config.get("general", {})
+        if not plot_cfg.get("save_plot", True) and not plot_cfg.get("show_plot", False):
             return
         
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
@@ -134,9 +134,10 @@ class WellGenerator:
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         
-        if plot_cfg.get("save"):
+        if plot_cfg.get("save_plot", True):
             out_dir = Path(self.config["general"].get("output_dir", "instances"))
             fname = f"well_{mode}_{instance_id}.png"
             plt.savefig(out_dir / fname, dpi=300)
-        if plot_cfg.get("show"): plt.show()
+        if plot_cfg.get("show_plot", False):
+            plt.show()
         plt.close()

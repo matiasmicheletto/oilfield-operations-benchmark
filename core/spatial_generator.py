@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from pathlib import Path
 from skimage.graph import MCP_Geometric
 from skimage.filters import gaussian, sobel
 from scipy.ndimage import zoom
@@ -10,6 +9,7 @@ class SpatialGenerator:
     def __init__(self, rng, config):
         self.rng = rng
         self.config = config["spatial"]
+        self.general_cfg = config.get("general", {})
         self.ops_center = None
 
     # ------------------------------------------------------------------
@@ -223,7 +223,9 @@ class SpatialGenerator:
     # Plot (same format as original prompt)
     # ------------------------------------------------------------------
     def plot_network(self, elevation, wells, paths, ops_center, instance_id, output_dir):
-        if not self.config["save_plot"] and not self.config["show_plot"]:
+        save_plot = self.general_cfg.get("save_plot", True)
+        show_plot = self.general_cfg.get("show_plot", False)
+        if not save_plot and not show_plot:
             return
 
         fig, ax = plt.subplots(figsize=(12, 12))
@@ -264,11 +266,11 @@ class SpatialGenerator:
         ax.axis('off')
         plt.tight_layout()
 
-        if self.config["save_plot"]:
+        if save_plot:
             fname = f"spatial_network_{instance_id}.png"
             plt.savefig(output_dir / fname, dpi=300)
 
-        if self.config["show_plot"]:
+        if show_plot:
             plt.show()
 
         plt.close()
