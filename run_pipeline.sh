@@ -8,7 +8,7 @@ CONFIG_FILE="default_config.yaml"
 NUM_INSTANCES=5
 N_WELLS=100
 N_BATTERIES=2
-DRY_RUN=true # Set to true to print commands without executing them
+DRY_RUN=false # Set to true to print commands without executing them
 CPLEX_BIN="" # Optional absolute path to CPLEX executable if not in PATH
 
 # Optional: override directories if needed
@@ -105,7 +105,17 @@ else
     for zpl in *.zpl; do
       echo "  - zimpl -t lp $zpl"
       if [[ "$DRY_RUN" != "true" ]]; then
-        zimpl -t lp "$zpl"
+        lp_out="${zpl%.zpl}.lp"
+        rm -f "$lp_out"
+        if ! zimpl -t lp "$zpl"; then
+          echo "Error: zimpl failed for '$zpl'."
+          echo "Hint: inspect '$zpl' for model/data consistency issues."
+          exit 1
+        fi
+        if [[ ! -f "$lp_out" ]]; then
+          echo "Error: zimpl completed but '$lp_out' was not created."
+          exit 1
+        fi
       fi
     done
   )

@@ -56,13 +56,20 @@ class SpatialGenerator:
     def generate_well_positions(self, n_wells):
         size = self.config["grid_size"]
         n_clusters = self.config.get("n_clusters", 4)
+        n_clusters = max(1, min(int(n_clusters), int(n_wells)))
         padding = size * 0.1
         centers = self.rng.uniform(padding, size - padding, size=(n_clusters, 2))
 
+        # Distribute wells across clusters while preserving the exact total.
+        base = n_wells // n_clusters
+        remainder = n_wells % n_clusters
+        wells_per_cluster = np.full(n_clusters, base, dtype=int)
+        wells_per_cluster[:remainder] += 1
+
         wells = []
-        for c in centers:
+        for c, count in zip(centers, wells_per_cluster):
             w = self.rng.normal(loc=c, scale=15,
-                                size=(n_wells // n_clusters, 2))
+                                size=(count, 2))
             wells.extend(w)
 
         wells = np.clip(np.array(wells), 0, size - 1)
