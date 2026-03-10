@@ -38,15 +38,6 @@ general:  # ---------------------------------------------------------
                          # Wells are assigned evenly across batteries.
                          # Usually 1–5 for small/medium studies.
 
-  plot: # -------------------------------------------------------
-        # Parameters for plotting the spatial configuration
-        # -------------------------------------------------------
-    
-    save: true  # Whether to save the plot of the spatial configuration.
-                # If true, the plot will be saved to a file in the output directory.
-    
-    show: false # Whether to display the plot interactively.
-
 
 rounding:  # --------------------------------------------------------
            # Number of decimal places for each generated variable.
@@ -215,3 +206,33 @@ spatial: # -------------------------------------------------------
   grid_size: 300      # Size of the spatial grid (e.g., 300x300 units).
                       # Controls the area over which wells and batteries are distributed.
                       # Larger → more spatial dispersion.
+
+  n_clusters: 3       # Number of spatial clusters for wells.
+                      # Controls how wells are grouped in space.
+                      # Higher values → more clusters, less clustering.
+
+  seed_resolution: 20 # Minimum distance between wells and batteries.
+                      # Controls spatial clustering.
+                      # Larger → more uniform distribution, fewer clusters.
+
+  smooth_sigma: 2   # Standard deviation for Gaussian smoothing of the distance matrix.
+                    # Higher values → smoother distance variations, less spatial heterogeneity.
+
+  num_peaks: 6      # Number of synthetic terrain peaks used to shape elevation.
+                    # Increase for more rugged terrain with more local highs/lows.
+
+  elevation_amplitude: 100  # Global terrain height scale.
+                            # Increase for steeper gradients and larger travel-cost contrasts.
+
+  cost_exponent: 2  # Exponent for distance-based cost scaling.
+                    # Higher values → more penalization of distant wells.
+    
+  save_plot: true   # Whether to save the plot of the spatial configuration.
+                    # If true, the plot will be saved to a file in the output directory.
+  
+  show_plot: false  # Whether to display the plot interactively.
+
+  
+  max_dist_fraction: 0.25,  # max well-to-well distance as fraction of grid size
+  min_per_well: 1,          # minimum lateral connections per well
+  max_per_well: 2           # maximum lateral connections per well

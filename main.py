@@ -1,8 +1,9 @@
 import sys
 import os
-import yaml
 import numpy as np
 from pathlib import Path
+
+from util.config import parse_args, resolve_config_path, load_config, apply_overrides
 
 from core.well_generator import WellGenerator
 from core.battery_generator import BatteryGenerator
@@ -10,19 +11,9 @@ from core.zpl_generator import ZPLGenerator
 from core.spatial_generator import SpatialGenerator
 
 
-def load_config(path: str) -> dict:
-    path = Path(path)
-    if not path.exists():
-        raise FileNotFoundError(f"Configuration file '{path}' not found.")
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
+def run_packager(config):
+    print(f"--- Initializing Packager ---")
 
-
-def run_packager(config_path):
-    print(f"--- Initializing Packager with: {config_path} ---")
-    config = load_config(config_path)
-
-    config = load_config(config_path)
     gen_cfg = config["general"]
     out_dir = Path(gen_cfg["output_dir"])
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -53,7 +44,7 @@ def run_packager(config_path):
         zpl_gen.generate(zpl_file, p_name, b_name, d_name)
 
         elev, cost_map = spatial_gen.generate_terrain()
-        well_positions = spatial_gen.generate_well_positions()
+        well_positions = spatial_gen.generate_well_positions(n_wells=gen_cfg["n_wells"])
         ops_center, paths = spatial_gen.build_network(cost_map, well_positions)
         distance_matrix = spatial_gen.compute_distance_matrix(cost_map, well_positions)
         
@@ -79,23 +70,15 @@ def run_packager(config_path):
         # 5. Plotting (Optional)
         well_gen.plot_distributions(wells, k)
         well_gen.plot_histograms(wells, k)
-        spatial_gen.plot_network(elev, well_positions, paths, ops_center, k)
+        spatial_gen.plot_network(elev, well_positions, paths, ops_center, k, out_dir)
 
         print(f"Packaged instance {k}: {param_file.name}, {bat_file.name}, {dist_file.name}, {z_name} generated.")
 
 
 if __name__ == "__main__":
-    # Check if the user provided a specific config file as an argument
-    if len(sys.argv) > 1:
-        target_config = sys.argv[1]
-    else:
-        # Fallback to the default filename
-        target_config = "default_config.yaml"
-        
-        # Check if the default actually exists before proceeding
-        if not os.path.exists(target_config):
-            print(f"Warning: No argument provided and '{target_config}' was not found.")
-            print("Usage: python main.py <path_to_config.yaml>")
-            sys.exit(1)
-
-    run_packager(target_config)
+    args = parse_args()
+    config_path = resolve_config_path(args.config_file)
+    config = load_config(str(config_path))
+    if args.overrides:
+        apply_overrides(config, args.overrides)
+    run_packager(config)
