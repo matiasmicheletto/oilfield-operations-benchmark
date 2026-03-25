@@ -46,33 +46,9 @@ python -m pip install -r "$REQ_FILE"
 # -------------------------------
 # Dependency checks
 # -------------------------------
-for cmd in python zimpl; do
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Error: '$cmd' is not available in PATH."
-    exit 1
-  fi
-done
-
-# Resolve CPLEX executable. In DRY_RUN mode this is optional.
-if [[ -n "$CPLEX_BIN" ]]; then
-  if [[ ! -x "$CPLEX_BIN" ]]; then
-    echo "Error: configured CPLEX_BIN is not executable: '$CPLEX_BIN'."
-    exit 1
-  fi
-else
-  if command -v cplex >/dev/null 2>&1; then
-    CPLEX_BIN="$(command -v cplex)"
-  fi
-fi
-
-if [[ "$DRY_RUN" != "true" && -z "$CPLEX_BIN" ]]; then
-  echo "Error: CPLEX executable not found."
-  echo "Set CPLEX_BIN to the full path of the cplex binary, or add cplex to PATH."
+if ! command -v python >/dev/null 2>&1; then
+  echo "Error: 'python' is not available in PATH."
   exit 1
-fi
-
-if [[ "$DRY_RUN" == "true" && -z "$CPLEX_BIN" ]]; then
-  echo "Warning: CPLEX executable not found, but DRY_RUN=true so continuing."
 fi
 
 mkdir -p "$INSTANCES_DIR"
@@ -95,6 +71,11 @@ if [[ "$DRY_RUN" != "true" ]]; then
 fi
 
 echo "[2/3] Converting ZPL models to LP in $INSTANCES_DIR"
+if ! command -v zimpl >/dev/null 2>&1; then
+  echo "Error: 'zimpl' is not available in PATH."
+  echo "Install zimpl or add it to PATH before running step 2."
+  exit 1
+fi
 shopt -s nullglob
 zpl_files=("$INSTANCES_DIR"/*.zpl)
 if (( ${#zpl_files[@]} == 0 )); then
@@ -122,6 +103,27 @@ else
 fi
 
 echo "[3/3] Solving LP models with CPLEX and writing solutions to $OUTPUT_DIR"
+# Resolve CPLEX executable. In DRY_RUN mode this is optional.
+if [[ -n "$CPLEX_BIN" ]]; then
+  if [[ ! -x "$CPLEX_BIN" ]]; then
+    echo "Error: configured CPLEX_BIN is not executable: '$CPLEX_BIN'."
+    exit 1
+  fi
+else
+  if command -v cplex >/dev/null 2>&1; then
+    CPLEX_BIN="$(command -v cplex)"
+  fi
+fi
+
+if [[ "$DRY_RUN" != "true" && -z "$CPLEX_BIN" ]]; then
+  echo "Error: 'cplex' is not available in PATH and CPLEX_BIN is not set."
+  echo "Set CPLEX_BIN to the full path of the cplex binary, or add cplex to PATH."
+  exit 1
+fi
+
+if [[ "$DRY_RUN" == "true" && -z "$CPLEX_BIN" ]]; then
+  echo "Warning: CPLEX executable not found, but DRY_RUN=true so continuing."
+fi
 lp_files=("$INSTANCES_DIR"/*.lp)
 if (( ${#lp_files[@]} == 0 )); then
   echo "Warning: no .lp files found in '$INSTANCES_DIR'."
