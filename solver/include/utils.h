@@ -86,6 +86,22 @@ inline bool areEqual(double a, double b) { return std::fabs(a - b) < 1e-9; }
 double randNormal(double mean, double stddev);
 double clamp(double value, double minVal, double maxVal);
 
+// ---------------------------------------------------------------------------
+// Routing helpers
+// ---------------------------------------------------------------------------
+
+// Nearest-Neighbour TSP route starting and ending at the depot (index 0).
+//
+//   well_indices  – dist_matrix row/col indices of the wells to visit
+//                   (each index matches the corresponding well.id)
+//   dist          – full (n+1)×(n+1) travel-time matrix
+//
+// Returns the ordered visit sequence (first and last element are 0 = depot)
+// and the accumulated travel time.
+std::pair<std::vector<int>, double>
+nearest_neighbor_route(const std::vector<int>& well_indices,
+                       const std::vector<std::vector<double>>& dist);
+
 } // namespace utils
 
 #endif // UTILS_HPP

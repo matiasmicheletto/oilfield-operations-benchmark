@@ -13,6 +13,3 @@ doc/*.pdf
 *.dvi
 *.sty
 *.dtx
-
-# Ignore editor and IDE files
-*.txt

@@ -1,0 +1,181 @@
+SOLVER MANUAL
+
+PROLOG
+   This manual is part of the oilfield-operations-benchmark project.
+   Source code and instance generator available at:
+   https://github.com/matiasmicheletto/oilfield-operations-benchmark
+
+NAME
+   solve - Greedy heuristic solver for the oilfield well-intervention
+           routing and production-regime optimisation problem.
+
+SYNOPSIS
+   solve -p PARAM_FILE -b BATTERY_FILE -d DIST_FILE [OPTIONS]
+   solve -c CONFIG_FILE [OPTIONS]
+
+DESCRIPTION
+   solve loads a benchmark instance (well parameters, battery targets, and
+   a travel-time distance matrix) and applies a greedy cyclic-window
+   heuristic to find a feasible set of wells to visit and a route for the
+   intervention crews.
+
+   For each battery the algorithm:
+     1. Ranks the battery's wells by priority (descending) then cost
+        (ascending).
+     2. Slides a window of max_wells entries cyclically through the ranked
+        list, testing at each position whether the selected subset allows
+        the battery's gross production target Gpt to be achieved via
+        regime adjustment (newregime in [0, 100]).
+     3. On finding a feasible window for every battery, combines all
+        selected wells and computes a nearest-neighbour TSP route
+        departing from and returning to the operations-centre depot
+        (index 0 in the distance matrix).
+
+   Configuration parameters follow the priority order (lowest to highest):
+     built-in defaults  →  -c YAML file  →  --set overrides  →  explicit flags
+
+INPUT FILES
+   The three input files are produced by the Python instance generator
+   (main.py) and follow fixed tab-separated formats:
+
+   parameters_<n>_<b>_<k>.dat
+      Header: ID  G  N  r  R  P  C  B
+        ID  Well identifier (1-indexed integer).
+        G   Gross production capacity.
+        N   Net production.
+        r   Current production regime (0–100).
+        R   Risk factor (0–100).
+        P   Priority level (0–100).
+        C   Intervention cost.
+        B   Parent battery ID.
+
+   batteries_<n>_<b>_<k>.dat
+      Header: ID  Gpt
+        ID   Battery identifier (1-indexed integer).
+        Gpt  Target gross production for the battery.
+
+   distance_<n>_<b>_<k>.dat
+      First line: "Distance Matrix" (text header, skipped).
+      Remaining:  (n+1) × (n+1) tab-separated travel-time values.
+        Row/column 0 = operations-centre depot.
+        Row/column i = well with ID == i  (1-indexed).
+
+OPTIONS
+   -p FILE, --param FILE
+      Path to the well parameters file (parameters_*.dat).
+      Required unless provided via -c or --set input.param_file.
+
+   -b FILE, --battery FILE
+      Path to the battery targets file (batteries_*.dat).
+      Required unless provided via -c or --set input.battery_file.
+
+   -d FILE, --dist FILE
+      Path to the distance matrix file (distance_*.dat).
+      Required unless provided via -c or --set input.dist_file.
+
+   -c FILE, --config FILE
+      Load solver parameters from a YAML configuration file.
+      Keys present in the file override built-in defaults; missing keys
+      keep their default values.  See CONFIGURATION FILE below.
+
+   -s KEY=VALUE, --set KEY=VALUE
+      Override a single configuration parameter after loading the config
+      file.  Can be repeated to override multiple parameters.
+      Recognised keys:
+        input.param_file      Path to parameters_*.dat
+        input.battery_file    Path to batteries_*.dat
+        input.dist_file       Path to distance_*.dat
+        solver.max_wells      Window size K  (integer, default: 20)
+        solver.tolerance      Production tolerance  (float, default: 0.05)
+        solver.crews          Number of crews  (integer, default: 2)
+        output.file           Output file path  (string)
+        output.debug          Enable debug output  (true/false)
+
+   -o FILE, --output FILE
+      Write the solution to FILE in plain-text format.
+      If omitted the solution is printed to stdout only.
+
+   -D, --dbg
+      Print verbose diagnostic messages from the loader and solver.
+
+   -v, --version
+      Print version string and exit.
+
+   -h, --help
+      Display this help message and exit.
+
+CONFIGURATION FILE
+   A YAML file with three optional sections.  Any subset of keys may be
+   present; omitted keys keep their defaults.
+
+   input:
+     param_file:   ""        # path to parameters_*.dat
+     battery_file: ""        # path to batteries_*.dat
+     dist_file:    ""        # path to distance_*.dat
+
+   solver:
+     max_wells: 20           # cyclic-window size K  (integer)
+     tolerance: 0.05         # ±fraction of Gpt  (float, e.g. 0.05 = ±5 %)
+     crews:     2            # number of intervention crews  (integer)
+
+   output:
+     file:  ""               # write solution here; empty = stdout only
+     debug: false            # verbose diagnostics  (true/false)
+
+   A template is provided in solver/solver_config.yaml.
+
+OUTPUT FORMAT
+   When a feasible solution is found the following lines are printed
+   (and optionally written to the output file):
+
+     Selected wells (N): <id1> <id2> ...
+     Route (depot=0): 0 <id_a> <id_b> ... 0
+     Total travel time: <value>
+
+   Selected wells lists the IDs of all wells chosen for intervention.
+   Route gives the visit order; node 0 is the operations-centre depot.
+   Total travel time is the sum of travel-time entries along the route.
+
+EXIT STATUS
+   0   A feasible solution was found.
+   1   Invalid arguments or file loading error.
+   2   No feasible solution found within the given parameters.
+
+EXAMPLES
+   # Minimal invocation using explicit flags
+   solve -p instances/parameters_100_2_1.dat \
+         -b instances/batteries_100_2_1.dat \
+         -d instances/distance_100_2_1.dat
+
+   # Load all parameters from a config file
+   solve -c solver_config.yaml
+
+   # Config file plus runtime overrides
+   solve -c solver_config.yaml \
+         --set solver.max_wells=25 \
+         --set solver.tolerance=0.10
+
+   # Config file for solver knobs, explicit paths for instance files
+   solve -c solver_config.yaml \
+         -p instances/parameters_100_2_3.dat \
+         -b instances/batteries_100_2_3.dat \
+         -d instances/distance_100_2_3.dat \
+         -o solution_3.txt
+
+   # Enable debug output
+   solve -c solver_config.yaml -D
+
+AUTHORS
+   Code was written by Dr. Matias J. Micheletto from IIDEPyS-GSJ
+   (UNPSJB-CONICET).
+
+REPORTING BUGS
+   Guidelines available at
+   <https://github.com/matiasmicheletto/oilfield-operations-benchmark>.
+
+COPYRIGHT
+   Copyright © 2025 Free Software Foundation, Inc.
+   License GPLv3+: GNU GPL version 3 or later
+   <https://gnu.org/licenses/gpl.html>.
+   This is free software: you are free to change and redistribute it.
+   There is NO WARRANTY, to the extent permitted by law.

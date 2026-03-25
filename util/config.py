@@ -8,8 +8,8 @@ def parse_args():
     parser.add_argument(
         "config_file",
         nargs="?",
-        default="default_config.yaml",
-        help="Configuration file name or path (default: default_config.yaml)",
+        default="generator_config.yaml",
+        help="Configuration file name or path (default: generator_config.yaml)",
     )
     parser.add_argument(
         "--set",

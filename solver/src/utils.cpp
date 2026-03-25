@@ -160,4 +160,46 @@ double clamp(double value, double minVal, double maxVal) {
     return value;
 }
 
+// ---------------------------------------------------------------------------
+// Routing helpers
+// ---------------------------------------------------------------------------
+
+std::pair<std::vector<int>, double>
+nearest_neighbor_route(const std::vector<int>& well_indices,
+                       const std::vector<std::vector<double>>& dist) {
+    if (well_indices.empty()) return {{0, 0}, 0.0};
+
+    const int n = static_cast<int>(well_indices.size());
+    std::vector<bool> visited(n, false);
+    std::vector<int>  route;
+    route.reserve(n + 2);
+    route.push_back(0); // depart from depot
+
+    int    current   = 0;
+    double total     = 0.0;
+
+    for (int step = 0; step < n; ++step) {
+        double best_d   = DBL_MAX;
+        int    best_pos = -1;
+
+        for (int j = 0; j < n; ++j) {
+            if (!visited[j] && dist[current][well_indices[j]] < best_d) {
+                best_d   = dist[current][well_indices[j]];
+                best_pos = j;
+            }
+        }
+
+        visited[best_pos] = true;
+        total   += best_d;
+        current  = well_indices[best_pos];
+        route.push_back(current);
+    }
+
+    // Return to depot
+    total += dist[current][0];
+    route.push_back(0);
+
+    return {route, total};
+}
+
 } // namespace utils

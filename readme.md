@@ -34,10 +34,21 @@ oilfield-operations-benchmark/
 │   ├── well_generator.py     # Well parameter sampling and visualization
 │   └── zpl_generator.py     # Zimpl (.zpl) model file writer
 ├── main.py              # Entry point for running the packager
-├── LICENSE              # License information (GNU GPL v3)
-├── requirements.txt     # Python dependencies
-├── default_config.yaml  # Default configuration for instance generation
-└── README.md            # This documentation
+├── solver/
+|   ├── include/
+|   |   └── utils.h       # Utility functions for the solver
+|   |   └── solver.h      # Header for the optimization solver
+|   |   └── loader.h      # Header for loading generated instances
+|   |   └── models.h      # Header for optimization models
+|   └── src/
+|       └── utils.cpp       # Utility function implementations
+|       └── solve_main.cpp  # Solver entry point for testing with generated instances
+|       └── solver.cpp      # Optimization solver implementation 
+|       └── loader.cpp      # Instance loading and parsing logic
+├── LICENSE                 # License information (GNU GPL v3)
+├── requirements.txt        # Python dependencies
+├── generator_config.yaml   # Default configuration for instance generation
+└── README.md               # This documentation
 ```
 
 ### Setup
@@ -56,12 +67,12 @@ To generate the entire dataset (Parameters, Batteries, Distances, Zimpl Models, 
 python main.py [config.yaml]
 ```
 
-If no configuration is provided, it defaults to [`default_config.yaml`](default_config.yaml).
+If no configuration is provided, it defaults to [`generator_config.yaml`](generator_config.yaml).
 
 You can also override parameters from CLI using dot notation:
 
 ```bash
-python main.py default_config.yaml \
+python main.py config.yaml \
   --set general.num_instances=2 \
   --set spatial.num_peaks=10 \
   --set spatial.elevation_amplitude=160

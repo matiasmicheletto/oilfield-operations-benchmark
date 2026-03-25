@@ -1,0 +1,40 @@
+# Oilfield Greedy Solver – configuration file
+# Load with:  solve -c solver_config.yaml -p <param> -b <bat> -D <dist>
+# Any value here can be overridden at the command line with --set key=value
+# or with the short/long flags -k / -t.
+
+# ---------------------------------------------------------------------------
+# Input files
+# Paths can be absolute or relative to the working directory.
+# ---------------------------------------------------------------------------
+input:
+  param_file:   ""   # -p / --param    Path to parameters_*.dat
+  battery_file: ""   # -b / --battery  Path to batteries_*.dat
+  dist_file:    ""   # -D / --dist     Path to distance_*.dat
+
+# ---------------------------------------------------------------------------
+# Greedy cyclic-window heuristic
+# ---------------------------------------------------------------------------
+solver:
+  max_wells: 20     # K – maximum wells to visit per battery.
+                    # The algorithm slides a window of this size through the
+                    # priority-sorted well list looking for a feasible subset.
+                    # Increase if no solution is found at smaller values.
+                    # Typical range: 10–30.
+
+  tolerance: 0.05   # Allowed fractional deviation from battery target Gpt.
+                    # 0.05 = ±5 %.  Widen if instances have noisy targets
+                    # (batteries.noise_std > 0.05 in the generator config).
+
+  crews: 2          # Number of intervention crews.
+                    # Used to compute the route (single combined route for
+                    # now; multi-crew partitioning is a planned extension).
+                    # Typically 1–5.
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+output:
+  file: ""          # -o  Write solution to this file (plain text).
+                    # Leave empty to print to stdout only.
+  debug: false      # --dbg  Print verbose solver diagnostics.

@@ -4,7 +4,7 @@ set -euo pipefail
 # -------------------------------
 # User-configurable parameters
 # -------------------------------
-CONFIG_FILE="default_config.yaml"
+CONFIG_FILE="generator_config.yaml"
 NUM_INSTANCES=5
 N_WELLS=100
 N_BATTERIES=2
