@@ -1,0 +1,76 @@
+\section{Problem description} \label{sec:form}
+
+Let ${\cal B} = \{1,\dots,B\}$ be the set of production batteries and let $\mathcal{W}=\{1,\ldots,W\}$ be the set of wells. Each battery $t\in {\cal V}$ groups a set ${\cal W}_t \subseteq {\cal W}$ of wells. Each well $W_i$ is described by the tuple $(G_i,N_i,r_i)$, where $G_i$ is the oil gross volume in $m^3/day$ produced, $N_i$ is the oil maximum net volume in $m^3/day$ produced, and $r_i \in (0,1)$ is the original well regime. We adopt the maximum values for the gross and net volumes produced since the actual production values are proportional to the regime ratio $r_i$. Although it is possible to assume $r_i$ as a continuos variable, in some cases it is restricted to just a few values determine by the technology used in the pumping. 
+
+Let $t\in {\cal B}$. Once the battery gross production value $G'_t$ is set, the different wells should adjust their regime to satisfy the demanded value. For this, a new $r'_i$ has to be computed in such a way that:
+
+\begin{equation} \label{eq:restr}
+    G'_t = \sum_{i = 1}^{W} G_i \cdot r'_i.
+\end{equation}
+
+$G'_t$ is the objective value and as such is an input variable to the system determined by the engineers in charge of the production.
+
+As explained before, most of the wells within a battery required the presence of an operator to set the appropriate regime that includes several aspects like opening/closing valves or setting pumping flow rate among other tasks. Usually workers are located within the operations center and from there they moved towards the different wells. For this they usually move with 4x4 trucks along dirty roads many times covered with snow or black ice. There is a cost associate both in time and resources to move along the wells. To incorporate this issue, an objective function is added with the total cost of the movements. For this purpose, the parameter $d_{ij}$ is defined, which models the cost, either in time or distance, of traveling from well $i$ to well $j$. A binary variable $x_{ij}$ that indicates whether wells $i$ and $j$ are visited consecutively by some operator is incorporated. In this way, the total cost $T$, which involves traveling between all the wells that must adjust their work regimes, is calculated according to the following equation:
+\begin{equation} \label{eq:minT}
+    T = \sum_{i = 0}^{W} \sum_{j = 0}^{W} d_{ij} \cdot x_{ij}.
+\end{equation}
+We assume that there are $\omega \in \mathbb{Z}_+$ operators, and this objective function considers the total travel distance of all of them. 
+
+The second objective function is related to the cost associated to the loss in the production, mainly the difference between the gross and net volumes, $L_i$ It is computed by the following equation:
+
+\begin{equation}
+    L_i = G_i - N_i,
+\end{equation}
+Like in equation (\ref{eq:restr}), the total loss of the battery is $L'_t$ and is computed as:
+\begin{equation} \label{eq:minL}
+    L'_t = \sum_{i = 1}^{W} L_i \cdot r'_i.
+\end{equation}
+The optimization problem consist in minimizing at the same time the two objective functions (\ref{eq:minT}) and (\ref{eq:minL}) while satisfying the condition given in (\ref{eq:restr}).
+
+
+% \skipthis{Esta restricción puede resultar limitante para la búsqueda de una solución óptima empleando algoritmos metaheurísticos como la optimización por enjambre de partículas (PSO), algoritmos genéticos (GA) o recocido simulado (SA). Sin embargo, al llevar el problema a la práctica se puede suponer un margen de error entre ambos valores, a modo de tolerancia, entre la producción bruta total y la obtenida al ajustar los nuevos regímenes de trabajo.
+
+% Entonces el error $e_t$ obtenido al calcular el nuevo valor bruto total respecto del valor bruto deseado no debe superar un valor de tolerancia $E_t$, entonces se define un nuevo valor estimado $G'_{et}$ tal que,
+
+% \begin{equation}\label{eq:tol}
+%     G'_{et} = G_t \pm e_t, \;\; \text{con} \;\;\; e_t \leq E_t.
+% \end{equation}
+
+% Substituyendo la ecuación \ref{eq:restr} en la ecuación \ref{eq:tol} se puede expresar la nueva restricción como 
+
+% \begin{equation} \label{eq:tol2}
+% \left| G'_{et} - \sum_{i = 1}^{W} G_i \cdot r'_i \right| \leq E_t.
+% \end{equation}
+% }
+
+The third objective function consists in minimizing the number of adjusted wells, while the fourth objective function is the sum of the costs associated with all the treated wells. To this end, let $C_i$ be the cost associated with the well $i$, for $i\in W$. The cost associated to a well is explained in what follows.
+To model intervention costs more realistically, the cost parameter $C_i$ is decomposed into two components:
+
+\begin{itemize}
+    \item Operational Risk $R_i$
+    \item Technical Priority $P_i$
+\end{itemize}
+
+Operational risk is assumed to increase with well productivity, as higher-output wells typically operate under greater mechanical stress. Accordingly, $R_i$ is generated as a function of normalized gross production:
+
+\[
+R_i = \rho_G \frac{G_i}{\max_j G_j} + \varepsilon_i^R,
+\]
+
+where $\rho_G$ is a scaling coefficient and $\varepsilon_i^R$ is a small zero-mean perturbation term.
+
+Technical priority reflects strategic or reservoir-management considerations and is assumed to correlate with net production:
+
+\[
+P_i = \rho_N \frac{N_i}{\max_j N_j} + \varepsilon_i^P,
+\]
+
+where $\rho_N$ is a scaling factor and $\varepsilon_i^P$ is a perturbation term.
+
+The intervention cost is then computed as:
+
+\[
+C_i = w_R R_i - w_P P_i + \kappa,
+\]
+
+\noindent where $w_R$ and $w_P$ are weighting coefficients and $\kappa$ is a positive constant ensuring non-negativity of costs. This formulation introduces realistic trade-offs between production importance and operational risk.

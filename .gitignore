@@ -1,10 +1,18 @@
+# Ignore build artifacts and temporary files
 venv/
 __pycache__/
 instances/
 
+# Ignore documentation build artifacts
 doc/*.pdf
 *.aux
 *.log
 *.out
 *.bbl
+*.bst
+*.dvi
+*.sty
+*.dtx
+
+# Ignore editor and IDE files
 *.txt

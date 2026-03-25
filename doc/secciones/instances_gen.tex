@@ -1,44 +1,3 @@
-\documentclass[a4paper]{article}
-
-\def\journalissue{Journalname 00(0):0000--0000}
-\def\paperidnum{https://doi.org/xx.xxx/XXxxxx}
-\setcounter{page}{1}
-
-%% Use this to show line numbers (and remove only in the final camera-ready version)
-\usepackage[pagewise]{lineno}
-\linenumbers
-
-\usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{verbatim}
-\usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{tikz}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usetikzlibrary{shapes.symbols, shapes.geometric, positioning, arrows.meta}
-
-\title{Oilfied Operations Benchmark}
-
-\author{
-    Matías Micheletto \and 
-    Javier Marenco \and 
-    Carlos De Marziani \and 
-    Rodrigo Santos
-}
-
-
-\begin{document}
-\maketitle
-
-\begin{abstract}
-    In mature conventional oilfields, production is organized through geographically distributed batteries that operate under limited processing capacity. Although supervisory platforms enable remote monitoring, adjustments in pumping regimes frequently require on-site intervention by maintenance teams, whose movements generate significant logistical costs. Consequently, production reconfiguration decisions are intrinsically coupled with routing decisions, giving rise to a structured multiobjective optimization problem. This paper proposes a multiobjective mixed-integer linear programming (MILP) formulation that integrates production regime adjustment with maintenance team routing. The model simultaneously minimizes travel distance, production losses, intervention costs, and the number of adjusted wells, while satisfying battery capacity constraints. Intervention costs are modeled through operational risk and technical priority components, introducing realistic trade-offs between production importance and field intervention effort. Synthetic instances inspired by statistical properties of mature oilfields are generated to evaluate the computational performance of the formulation. Preliminary computational experiments illustrate the feasibility of the approach and the structure of the Pareto frontier, highlighting the trade-offs between operational efficiency and intervention costs.
-\end{abstract}
-
-
 \section{Synthetic Instance Generation} \label{sec:instances}
 
 To evaluate the proposed optimization model under controlled yet realistic operating conditions, synthetic instances were generated following statistical assumptions inspired by production behavior observed in mature conventional oilfields. The objective of this procedure is to reproduce key structural characteristics of real production systems while maintaining reproducibility and scalability.
@@ -80,14 +39,14 @@ This approach ensures that the generated datasets capture structural properties 
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.75\textwidth]{img/well_hist_1.png}
+    \includegraphics[width=0.75\textwidth]{imagenes/well_hist_1.png}
     \caption{Histograms of well parameters distribution}
     \label{fig:well_hist}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.75\textwidth]{img/well_bar_1.png}
+    \includegraphics[width=0.75\textwidth]{imagenes/well_bar_1.png}
     \caption{Generated parameters of 50 wells sorted by ID}
     \label{fig:well_dist}
 \end{figure}
@@ -116,10 +75,7 @@ Finally, the distance matrix used in the MILP routing component is computed from
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.75\textwidth]{img/spatial_network_1.png}
+    \includegraphics[width=0.75\textwidth]{imagenes/spatial_network_1.png}
     \caption{Procedural generated map of well locations and operations center}
     \label{fig:oil_field_map}
 \end{figure}
-
-
-\end{document}

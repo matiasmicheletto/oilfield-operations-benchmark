@@ -1,0 +1,75 @@
+\documentclass[runningheads, final]{comsis2}
+
+\def\journalissue{Computer Science and Information Systems 00(0):0000--0000}
+\def\paperidnum{https://doi.org/10.2298/CSIS123456789X}
+\setcounter{page}{1}
+
+%% Use this to show line numbers (and remove only in the final camera-ready version)
+\usepackage[pagewise]{lineno}
+\linenumbers
+
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usetikzlibrary{shapes.symbols, shapes.geometric, positioning, arrows.meta}
+
+\bibliographystyle{unsrt}
+
+\title{Multiobjective optimization model for regime adjustment in crude oil production}
+\titlerunning{Multiobjective optimization in crude oil production}
+
+\author{
+    Matías Micheletto\inst{1} \and 
+    Javier Marenco \inst{2} \and 
+    Carlos De Marziani \inst{1} \and 
+    Rodrigo Santos \inst{3}
+}
+
+\institute{  Instituto Multidisciplinario para la Investigación y el Desarrollo Productivo y Social de la Cuenca Golfo San Jorge - CONICET\\
+            8000 Comodoro Rivadavia, Argentina\\
+            \email{matias.micheletto@uns.edu.ar, cdemarzi@gmail.com}
+            \and
+            Universidad Torcuato di Tella\\
+            C1428, Ciudad Autónoma de Buenos Aires, Argentina\\
+            \email{javier.marenco@utdt.edu}
+            \and
+            Dep. Ing. Eléctrica y Computadoras, Universidad Nacional del Sur,
+            8000, Bahia Blanca, Argentina\\
+            \email{ierms@uns.edu.ar}
+            }
+\begin{document}
+\maketitle
+
+\begin{abstract}
+    %A production battery in the oil industry is a set of equipment and facilities used in the initial stages of crude oil processing at an oilfield. At various stages of operation, it may be necessary to restrict or increase its processing capacity, meaning that the gross volume to be received must be adjusted. In remote areas where connectivity and infrastructure may be limited, it is necessary for an operator to approach the well in person to make manual adjustments directly to the pumping system. Proper planning of the well route for adjusting regimes directly impacts the operating costs of the oilfield. In this work in progress, a mixed integer linear programming model for this problem is proposed, by considering the production, operation, and modification restrictions of the pumping regime of each well. Preliminary results are presented, which show that the model can be used in practice. In mature conventional basins, production is typically organized through multiple batteries that deliver their output to a crude oil treatment plant. Within the framework of the industry’s digital transformation processes, these systems increasingly rely on supervisory and data acquisition platforms that enable remote monitoring of operational variables. However, certain control actions and adjustments of pumping systems still require the on-site intervention of specialized maintenance teams. These teams serve multiple batteries within an oilfield and must travel between wells to adjust pumping regimes in response to changes in the processing capacity of the treatment plant, maintenance activities, or operational constraints. In this context, planning field interventions becomes a relevant operational problem, in which production targets, process-related losses, and logistical travel costs must be considered simultaneously. Thus, this paper proposes a mixed-integer linear programming model to support decision-making in the adjustment of production regimes in oilfield batteries. The model integrates production and operational constraints with the planning of maintenance team routes, aiming to balance production goals with the minimization of losses and field intervention costs. Preliminary results indicate that the proposed approach is feasible and suitable for application under real operating conditions.
+    
+     In mature conventional oilfields, production is organized through geographically distributed batteries that operate under limited processing capacity. Although supervisory platforms enable remote monitoring, adjustments in pumping regimes frequently require on-site intervention by maintenance teams, whose movements generate significant logistical costs. Consequently, production reconfiguration decisions are intrinsically coupled with routing decisions, giving rise to a structured multiobjective optimization problem. This paper proposes a multiobjective mixed-integer linear programming (MILP) formulation that integrates production regime adjustment with maintenance team routing. The model simultaneously minimizes travel distance, production losses, intervention costs, and the number of adjusted wells, while satisfying battery capacity constraints. Intervention costs are modeled through operational risk and technical priority components, introducing realistic trade-offs between production importance and field intervention effort. Synthetic instances inspired by statistical properties of mature oilfields are generated to evaluate the computational performance of the formulation. Preliminary computational experiments illustrate the feasibility of the approach and the structure of the Pareto frontier, highlighting the trade-offs between operational efficiency and intervention costs.
+      
+    \vspace{6pt}
+    \textbf{Keywords: }
+    Oil \& Gas, 
+    Multiobjective Optimization, 
+    Mixed-Integer Linear Programming, 
+    Production Routing, 
+    Field Intervention Planning.
+\end{abstract}
+
+\input{secciones/intro}
+\input{secciones/previous}
+\input{secciones/problem_desc}
+\input{secciones/ilp_model}
+\input{secciones/instances_gen}
+\input{secciones/results}
+\input{secciones/conclusions}
+
+\bibliography{biblio}
+
+\end{document}

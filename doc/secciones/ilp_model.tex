@@ -1,0 +1,40 @@
+\section{ILP Model} \label{sec:modelo}
+In this section, the ILP model is developed. For each well $i$, the continuous variable $r'_i \in [0,1]$ represents the new operational regime. A binary variable $z_i \in \{0,1\}$ is introduced to represent changes in the operation of the well in such a way that $z_i = 1$ when $r'_i \ne r_i$. For each pair of wells $i,j$, the binary variable $x_{ij}=1$ if some operator visits the well $j$ immediately after the well $i$. Well $0$ represents the battery operations center from which the operators begin their tours. Finally, the continuous value $y_i \in [0,W]$ is used to express through MTZ constraints the order in which the wells are visited. From these definitions the ILP model can be written as:
+
+\begin{eqnarray}
+\min & & \hspace*{-0.5cm} \sum_{i=0}^W \sum_{j=0}^W d_{ij} \; x_{ij} \label{obj.distancia} \\
+\min & & \hspace*{-0.5cm} \sum_{i=1}^W (G_i - N_i) \; r'_i \label{obj.perdida} \\
+\min & & \hspace*{-0.5cm} \sum_{i=1}^W C_i z_i \label{obj.costo} \\
+\min & & \hspace*{-0.5cm} \sum_{i=1}^W z_i \label{obj.cantidad} 
+\end{eqnarray}
+\begin{eqnarray}
+\sum_{i=1}^W G_i \; r'_i & = & G'_t \hspace*{1.57cm} \forall t\in {\cal B} \label{constr.target} \\
+r'_i & \ge & r_i - z_i \hspace*{1.57cm} i=1,\dots,W \label{constr.ligarrwsuperior} \\
+r'_i & \le & r_i + z_i \hspace*{1.57cm} i=1,\dots,W \label{constr.ligarrwinferior} \\
+%\end{eqnarray}
+%\begin{eqnarray}
+\sum_{i=0}^W x_{ji} & = & z_i \hspace*{2.35cm} i = 1,\dots,W \label{constr.recorrer} \\
+\sum_{i=1}^W x_{0i} & = & \omega \label{constr.salida} \\
+\sum_{j=0}^W x_{ji} & = & \sum_{j=0}^W x_{ij} \hspace*{1.65cm} i=1,\dots,W \label{constr.flujo} \\
+y_i + 1 & \le & y_j + W (1 - x_{ij}) \hspace*{0.2cm} i,j=1,\dots,W, \nonumber \\
+        &     & \hspace*{2.65cm} i\ne j \label{constr.mtz} 
+\end{eqnarray}        
+\begin{eqnarray}
+r'_i & \in & [0,1] \hspace*{1.95cm} i=1,\dots, W \label{constr.domrp} \\
+z_i & \in & \{0,1\} \hspace*{1.8cm} i=1,\dots,W \label{constr.domz} \\
+x_{ij} & \in & \{0,1\} \hspace*{1.8cm} i,j=1,\dots,W \label{constr.domx} \\
+y_i & \in & [0,W] \hspace*{1.75cm} i=1,\dots,W \label{constr.domy}
+\end{eqnarray}
+
+There are four objective functions, minimizing the total distance (\ref{obj.distancia}), the total loss (\ref{obj.perdida}), the total cost (\ref{obj.costo}), and the number of adjusted wells (\ref{obj.cantidad}). Constraints (\ref{constr.target}) specify the total loss that should be obtained with the new regimes in the wells. Restrictions (\ref{constr.ligarrwsuperior}) and (\ref{constr.ligarrwinferior}) link the variables $r'$ and $z$ in such a way that $z_i=1$ if $r'_i\ne r_i$ (changes regime). Constraints (\ref{constr.recorrer}) specify that all the wells that change regime should be visited to adjust the production, that is all wells such that $z_i=1$. Restrictions (\ref{constr.salida}) state that the operators should begin the tour in the battery operation center (Well $0$), and the restrictions  (\ref{constr.flujo}) express the conditions for flow conservation at each well. Together with constraints of type MTZ, (\ref{constr.mtz}) these restrictions ask the variables $x$ to represent a hamiltonian circuit among the wells that change regime. Finally, restrictions (\ref{constr.domrp})-(\ref{constr.domy}) determine the variables' domains.
+
+
+%In Figure \ref{fig:satelital} a small battery in the south of Argentina is represented with the roads connecting the different wells and the operation center.
+
+% \begin{figure}[ht]
+%   \centering
+%   \includegraphics[scale=0.2%width=0.47\textwidth
+%   ]{caminos_sub_numerados.png}
+%   \caption{Roads connecting wells in a small size battery in the south of Argentina obtained from satellite images. Location: 46$^\circ\text{40'50''S 67}$ $^\circ\text{51'29''W}$ (Santa Cruz, Argentina).}
+%   \label{fig:satelital}
+% \end{figure}
