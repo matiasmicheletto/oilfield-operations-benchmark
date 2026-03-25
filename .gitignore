@@ -1,7 +1,8 @@
 # Ignore build artifacts and temporary files
-venv/
-__pycache__/
-instances/
+generator/venv/
+generator/__pycache__/
+generator/core/__pycache__/
+generator/instances/
 
 # Ignore documentation build artifacts
 doc/*.pdf
