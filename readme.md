@@ -384,6 +384,15 @@ A tab-separated file with two columns:
 
 ---
 
+### Solver usage
+
+```bash
+solve -p PARAM_FILE -b BATTERY_FILE -d DIST_FILE [OPTIONS]
+solve -c CONFIG_FILE [OPTIONS]
+```
+
+---
+
 ## 📝 License
 
 General Public License v3.0 (GPL-3.0)

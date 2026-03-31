@@ -114,13 +114,16 @@ int main(int argc, char **argv) {
               << " distance matrix.\n";
     std::cout << "[main] max_wells=" << cfg.max_wells
               << "  tolerance=" << cfg.tolerance
-              << "  crews=" << cfg.crews << "\n";
+              << "  crews=" << cfg.crews
+              << "  max_quantity=" << cfg.max_quantity
+              << "  max_cost=" << cfg.max_cost
+              << "  max_loss=" << cfg.max_loss << "\n";
 
     // ------------------------------------------------------------------
     // Solve
     // ------------------------------------------------------------------
     Solution sol;
-    if (!solver::solve(inst, sol, cfg.max_wells, cfg.tolerance)) {
+    if (!solver::solve(inst, sol, cfg)) {
         std::cerr << utils::red << "[main] No feasible solution found.\n"
                   << utils::reset;
         return 2;

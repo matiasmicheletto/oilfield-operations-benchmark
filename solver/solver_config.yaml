@@ -31,6 +31,17 @@ solver:
                     # now; multi-crew partitioning is a planned extension).
                     # Typically 1–5.
 
+  max_quantity: .inf  # Maximum number of wells that may be selected globally.
+                    # (default: unconstrained)
+
+  max_cost: .inf    # Maximum total intervention cost  sum C[i] over selected wells.
+                    # (default: unconstrained)
+
+  max_loss: .inf    # Maximum allowed net-loss  sum (G[i]-N[i])*newregime[i]/100.
+                    # During selection a conservative worst-case estimate is used
+                    # (newregime = 100 for every selected well).
+                    # (default: unconstrained)
+
 # ---------------------------------------------------------------------------
 # Output
 # ---------------------------------------------------------------------------

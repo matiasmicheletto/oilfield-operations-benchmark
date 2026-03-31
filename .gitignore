@@ -4,6 +4,9 @@ generator/__pycache__/
 generator/core/__pycache__/
 generator/instances/
 
+solver/bin/
+solver/obj/
+
 # Ignore documentation build artifacts
 doc/*.pdf
 *.aux

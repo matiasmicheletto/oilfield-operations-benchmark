@@ -34,6 +34,9 @@ void load_yaml_config(SolverConfig& cfg, const std::string& path) {
         if (s["max_wells"]) cfg.max_wells = s["max_wells"].as<int>();
         if (s["tolerance"]) cfg.tolerance = s["tolerance"].as<double>();
         if (s["crews"])     cfg.crews     = s["crews"].as<int>();
+        if (s["max_quantity"]) cfg.max_quantity = s["max_quantity"].as<int>();
+        if (s["max_cost"])     cfg.max_cost     = s["max_cost"].as<double>();
+        if (s["max_loss"])     cfg.max_loss     = s["max_loss"].as<double>();
     }
 
     if (root["output"]) {
@@ -61,14 +64,17 @@ void apply_override(SolverConfig& cfg, const std::string& kv) {
     const std::string val = kv.substr(eq + 1);
 
     try {
-        if      (key == "input.param_file")   cfg.param_file   = val;
-        else if (key == "input.battery_file") cfg.battery_file = val;
-        else if (key == "input.dist_file")    cfg.dist_file    = val;
-        else if (key == "solver.max_wells")   cfg.max_wells    = std::stoi(val);
-        else if (key == "solver.tolerance")   cfg.tolerance    = std::stod(val);
-        else if (key == "solver.crews")       cfg.crews        = std::stoi(val);
-        else if (key == "output.file")        cfg.output_file  = val;
-        else if (key == "output.debug")       cfg.debug        = (val == "true" || val == "1");
+        if      (key == "input.param_file")    cfg.param_file   = val;
+        else if (key == "input.battery_file")  cfg.battery_file = val;
+        else if (key == "input.dist_file")     cfg.dist_file    = val;
+        else if (key == "solver.max_wells")    cfg.max_wells    = std::stoi(val);
+        else if (key == "solver.tolerance")    cfg.tolerance    = std::stod(val);
+        else if (key == "solver.crews")        cfg.crews        = std::stoi(val);
+        else if (key == "solver.max_quantity") cfg.max_quantity = std::stoi(val);
+        else if (key == "solver.max_cost")     cfg.max_cost     = std::stod(val);
+        else if (key == "solver.max_loss")     cfg.max_loss     = std::stod(val);
+        else if (key == "output.file")         cfg.output_file  = val;
+        else if (key == "output.debug")        cfg.debug        = (val == "true" || val == "1");
         else
             std::cerr << utils::red
                       << "[config] --set: unknown key '" << key << "'\n"
