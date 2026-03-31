@@ -102,6 +102,29 @@ std::pair<std::vector<int>, double>
 nearest_neighbor_route(const std::vector<int>& well_indices,
                        const std::vector<std::vector<double>>& dist);
 
+// 2-opt local-search improvement applied in-place to a single crew route.
+//   route – [0, w1, ..., wk, 0] (depot at both ends, not modified as endpoints)
+//   dist  – full (n+1)×(n+1) travel-time matrix
+// Iterates until no improving 2-opt swap is found.
+void two_opt(std::vector<int>& route,
+             const std::vector<std::vector<double>>& dist);
+
+// Partition well_ids into `crews` subsets (round-robin by distance from depot),
+// run nearest-neighbour TSP + 2-opt per crew, and return the per-crew routes
+// along with the total combined distance.
+//
+//   well_ids  – well IDs to route (each doubles as dist_matrix index)
+//   dist      – full (n+1)×(n+1) travel-time matrix
+//   crews     – number of crews (>= 1)
+//
+// Returns {crew_routes, total_distance}.
+// Crews with no assigned wells are represented as an empty vector.
+// When crews == 1 the result is equivalent to nearest_neighbor_route + two_opt.
+std::pair<std::vector<std::vector<int>>, double>
+multi_crew_route(const std::vector<int>& well_ids,
+                 const std::vector<std::vector<double>>& dist,
+                 int crews);
+
 } // namespace utils
 
 #endif // UTILS_HPP

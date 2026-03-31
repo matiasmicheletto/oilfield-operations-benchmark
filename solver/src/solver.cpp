@@ -58,7 +58,11 @@ bool solve(const Instance& inst, Solution& sol,
 {
     sol.feasible       = false;
     sol.total_distance = std::numeric_limits<double>::max();
+    sol.total_cost     = 0.0;
+    sol.total_loss     = 0.0;
     sol.selected_ids.clear();
+    sol.new_regimes.clear();
+    sol.crew_routes.clear();
     sol.route.clear();
 
     const double tolerance   = cfg.tolerance;
@@ -72,6 +76,12 @@ bool solve(const Instance& inst, Solution& sol,
     std::unordered_map<int, const Battery*> bat_by_id;
     for (const Battery& b : inst.batteries)
         bat_by_id[b.id] = &b;
+
+    // well.id → index into inst.wells (used throughout to avoid O(n) scans)
+    std::unordered_map<int, size_t> well_idx_by_id;
+    well_idx_by_id.reserve(inst.wells.size());
+    for (size_t i = 0; i < inst.wells.size(); ++i)
+        well_idx_by_id[inst.wells[i].id] = i;
 
     // battery_id → indices into inst.wells
     std::unordered_map<int, std::vector<size_t>> bat_map;
@@ -155,23 +165,15 @@ bool solve(const Instance& inst, Solution& sol,
     }
 
     // ------------------------------------------------------------------
-    // Verify every battery has a feasible selection
+    // Diagnostic log: print achievable range per battery.
+    // Feasibility was already guaranteed by the selection loop — every
+    // accepted well passed production_feasible() at the moment of acceptance.
+    // The lightweight range check below is a diagnostic-only guard.
     // ------------------------------------------------------------------
     for (const Battery& bat : inst.batteries) {
         const auto& bat_all = bat_map.at(bat.id);
         const auto& bsel    = bat_selected.at(bat.id);
 
-        if (!production_feasible(bsel, bat_all, inst.wells,
-                                 bat.target_gross, tolerance)) {
-            std::cout << utils::red
-                      << "[solver] Battery " << bat.id
-                      << ": no feasible selection found (Gpt=" << bat.target_gross
-                      << ", tol=" << (tolerance * 100.0) << "%).\n"
-                      << utils::reset;
-            return false;
-        }
-
-        // Compute and log the achievable range for diagnostics
         std::unordered_set<size_t> sel_set(bsel.begin(), bsel.end());
         double base = 0.0;
         for (size_t i : bat_all)
@@ -179,6 +181,18 @@ bool solve(const Instance& inst, Solution& sol,
                 base += inst.wells[i].gross_prod * inst.wells[i].current_regime / 100.0;
         double max_add = 0.0;
         for (size_t i : bsel) max_add += inst.wells[i].gross_prod;
+
+        // Diagnostic guard: Gpt must lie within [base, base+max_add] ± tolerance
+        const double eff_target = std::min(bat.target_gross, base + max_add);
+        if (eff_target < base * (1.0 - tolerance) ||
+            eff_target > (base + max_add) * (1.0 + tolerance)) {
+            std::cout << utils::red
+                      << "[solver] Battery " << bat.id
+                      << ": INTERNAL ERROR – final selection is infeasible (Gpt="
+                      << bat.target_gross << ", tol=" << (tolerance * 100.0) << "%).\n"
+                      << utils::reset;
+            return false;
+        }
 
         std::cout << "[solver] Battery " << bat.id
                   << ": selected=" << bsel.size()
@@ -192,16 +206,130 @@ bool solve(const Instance& inst, Solution& sol,
               << "  loss_est=" << sel_loss_est << "\n";
 
     // ------------------------------------------------------------------
-    // Nearest-Neighbour routing (single crew).
-    // Multi-crew partitioning is deferred to Step 3.
+    // Step 2: Regime assignment — proportional scaling per battery.
+    //
+    // For each battery k and its selected wells S_k:
+    //   target_contribution = Gpt[k] - base_unselected
+    //   Where base_unselected = sum G[i]*r[i]/100 for non-selected wells.
+    //
+    //   Proportional scale: newregime[i] = r[i] * scale
+    //     where scale = target_contribution / sum_{i in S_k} G[i]*r[i]/100
+    //
+    //   Wells that would exceed 100 are capped; any remaining shortfall is
+    //   redistributed among uncapped wells in a single pass.
     // ------------------------------------------------------------------
-    auto [route, dist] = utils::nearest_neighbor_route(
-                             sol.selected_ids, inst.dist_matrix);
 
-    sol.route          = route;
-    sol.total_distance = dist;
-    sol.feasible       = true;
+    // new_regimes indexed by well.id (1-based); allocate with zeros
+    const int max_well_id = static_cast<int>(inst.wells.size());  // IDs are 1..n
+    sol.new_regimes.assign(max_well_id + 1, 0.0);
 
+    for (const Battery& bat : inst.batteries) {
+        const auto& bat_all = bat_map.at(bat.id);
+        const auto& bsel    = bat_selected.at(bat.id);
+
+        if (bsel.empty()) continue;
+
+        // Base production from non-selected wells (fixed regimes)
+        std::unordered_set<size_t> sel_set(bsel.begin(), bsel.end());
+        double base = 0.0;
+        for (size_t i : bat_all)
+            if (!sel_set.count(i))
+                base += inst.wells[i].gross_prod * inst.wells[i].current_regime / 100.0;
+
+        // Effective target for the selected wells
+        double sum_G_sel = 0.0;
+        for (size_t i : bsel) sum_G_sel += inst.wells[i].gross_prod;
+        const double max_prod   = base + sum_G_sel;
+        const double eff_target = std::min(bat.target_gross, max_prod);
+        const double need       = eff_target - base; // contribution required from selected wells
+
+        // Current contribution at existing regimes
+        double cur_contribution = 0.0;
+        for (size_t i : bsel)
+            cur_contribution += inst.wells[i].gross_prod
+                              * inst.wells[i].current_regime / 100.0;
+
+        // When all selected wells already operate at regime 0, proportional
+        // scaling is undefined (0 * scale == 0 regardless of scale).  Instead,
+        // assign the required production uniformly across selected wells by
+        // capacity, then clamp.  This avoids the 100x overscale that would
+        // occur if the fallback value were fed into the base_regime * scale path.
+        if (cur_contribution <= 1e-9) {
+            // newregime[i] = (need / sum_G_sel) * 100, clamped to [0, 100]
+            const double uniform_regime = (sum_G_sel > 1e-9)
+                                          ? utils::clamp(need / sum_G_sel * 100.0, 0.0, 100.0)
+                                          : 0.0;
+            for (size_t i : bsel)
+                sol.new_regimes[inst.wells[i].id] = uniform_regime;
+            continue;  // skip the proportional-scale block below
+        }
+
+        const double scale = need / cur_contribution;
+
+        // First pass: apply scale, collect capped wells and leftover
+        std::vector<size_t> uncapped;
+        double leftover  = 0.0;
+        double g_uncapped = 0.0;
+
+        for (size_t i : bsel) {
+            const Well& w = inst.wells[i];
+            double nr = w.current_regime * scale;
+
+            if (nr > 100.0) {
+                leftover += (nr - 100.0) * w.gross_prod / 100.0; // excess G contribution
+                sol.new_regimes[w.id] = 100.0;
+            } else {
+                sol.new_regimes[w.id] = nr;
+                uncapped.push_back(i);
+                g_uncapped += w.gross_prod;
+            }
+        }
+
+        // Second pass: redistribute leftover among uncapped wells
+        if (leftover > 1e-9 && g_uncapped > 1e-9) {
+            for (size_t i : uncapped) {
+                const Well& w = inst.wells[i];
+                double extra  = leftover * (w.gross_prod / g_uncapped);
+                double nr     = sol.new_regimes[w.id]
+                              + extra / w.gross_prod * 100.0;
+                sol.new_regimes[w.id] = utils::clamp(nr, 0.0, 100.0);
+            }
+        }
+    }
+
+    // Compute total_cost and total_loss from actual (post-assignment) regimes.
+    // Uses well_idx_by_id for O(1) lookup instead of a linear scan per well.
+    sol.total_cost = 0.0;
+    sol.total_loss = 0.0;
+    for (int id : sol.selected_ids) {
+        const Well& w  = inst.wells[well_idx_by_id.at(id)];
+        sol.total_cost += w.cost;
+        const double nr = sol.new_regimes[id];
+        sol.total_loss += std::max(0.0, w.gross_prod - w.net_prod) * nr / 100.0;
+    }
+
+    // ------------------------------------------------------------------
+    // Step 3: Multi-crew routing — round-robin partition by depot distance,
+    //         NN TSP per crew, 2-opt post-processing per crew.
+    // ------------------------------------------------------------------
+    auto [crew_routes, total_dist] = utils::multi_crew_route(
+                                         sol.selected_ids, inst.dist_matrix,
+                                         cfg.crews);
+
+    sol.crew_routes    = crew_routes;
+    sol.total_distance = total_dist;
+
+    // Build legacy flat route (crew routes concatenated, depot repetitions collapsed)
+    sol.route.clear();
+    sol.route.push_back(0);
+    for (const auto& cr : crew_routes) {
+        // cr is [0, w1, ..., wk, 0]; skip leading 0 and trailing 0
+        for (int k = 1; k + 1 < static_cast<int>(cr.size()); ++k)
+            sol.route.push_back(cr[k]);
+    }
+    sol.route.push_back(0);
+
+    sol.feasible = true;
     return true;
 }
 

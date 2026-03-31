@@ -40,10 +40,25 @@ struct Instance {
 };
 
 struct Solution {
-    std::vector<int> selected_ids;  // Well IDs chosen for intervention
-    std::vector<int> route;         // Visit order using dist_matrix indices (0 = depot)
-    double           total_distance;
-    bool             feasible;
+    std::vector<int>    selected_ids;   // Well IDs chosen for intervention
+    double              total_distance;
+    bool                feasible;
+
+    // new_regimes[i] = assigned production regime (0-100) for well with id==i.
+    // Indexed by well ID (1-based); index 0 is unused.
+    // Only meaningful for IDs in selected_ids; all others are 0.
+    std::vector<double> new_regimes;
+
+    // One route per crew: each route is [0, w1, w2, ..., wk, 0] (depot at both ends).
+    // Empty crews are represented as an empty vector (not {0,0}).
+    std::vector<std::vector<int>> crew_routes;
+
+    double total_cost;  // sum C[i] over selected wells
+    double total_loss;  // sum (G[i]-N[i]) * newregime[i] / 100 over selected wells
+
+    // Legacy single-route view (union of all crew routes, excluding depot repetitions).
+    // Kept for backward compatibility; prefer crew_routes for new code.
+    std::vector<int> route;
 };
 
 #endif // MODELS_H

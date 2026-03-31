@@ -1,5 +1,9 @@
 #include "../include/utils.h"
 
+#include <algorithm>
+#include <cassert>
+#include <chrono>
+
 namespace utils {
 
 std::filesystem::path getBinaryDir(){
@@ -167,7 +171,8 @@ double clamp(double value, double minVal, double maxVal) {
 std::pair<std::vector<int>, double>
 nearest_neighbor_route(const std::vector<int>& well_indices,
                        const std::vector<std::vector<double>>& dist) {
-    if (well_indices.empty()) return {{0, 0}, 0.0};
+    // The caller (multi_crew_route) is responsible for ensuring non-empty input.
+    assert(!well_indices.empty() && "nearest_neighbor_route called with empty well list");
 
     const int n = static_cast<int>(well_indices.size());
     std::vector<bool> visited(n, false);
@@ -200,6 +205,86 @@ nearest_neighbor_route(const std::vector<int>& well_indices,
     route.push_back(0);
 
     return {route, total};
+}
+
+// ---------------------------------------------------------------------------
+// 2-opt local-search improvement (in-place).
+//
+// Route format: [0, w1, w2, ..., wk, 0]
+// We only reverse interior segments (indices 1 .. n-2 of the route vector,
+// where n = route.size()).  Depot endpoints are never moved.
+// ---------------------------------------------------------------------------
+void two_opt(std::vector<int>& route,
+             const std::vector<std::vector<double>>& dist)
+{
+    const int n = static_cast<int>(route.size());
+    if (n <= 3) return; // nothing to improve: [0, w, 0] or shorter
+
+    bool improved = true;
+    while (improved) {
+        improved = false;
+        // i ranges over the first edge of the candidate swap: route[i]→route[i+1]
+        // j ranges over the second edge:                       route[j]→route[j+1]
+        for (int i = 1; i <= n - 3; ++i) {
+            for (int j = i + 1; j <= n - 2; ++j) {
+                // Current cost of the two edges being considered
+                const double d_cur = dist[route[i - 1]][route[i]]
+                                   + dist[route[j]][route[j + 1]];
+                // Cost after reversing segment [i .. j]
+                const double d_new = dist[route[i - 1]][route[j]]
+                                   + dist[route[i]][route[j + 1]];
+                if (d_new < d_cur - 1e-9) {
+                    std::reverse(route.begin() + i, route.begin() + j + 1);
+                    improved = true;
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Multi-crew routing with round-robin partitioning + NN + 2-opt.
+// ---------------------------------------------------------------------------
+std::pair<std::vector<std::vector<int>>, double>
+multi_crew_route(const std::vector<int>& well_ids,
+                 const std::vector<std::vector<double>>& dist,
+                 int crews)
+{
+    if (crews < 1) crews = 1;
+
+    std::vector<std::vector<int>> crew_wells(crews);
+
+    if (!well_ids.empty()) {
+        // Sort wells by distance from depot (index 0) ascending
+        std::vector<int> sorted = well_ids;
+        std::sort(sorted.begin(), sorted.end(), [&](int a, int b) {
+            return dist[0][a] < dist[0][b];
+        });
+
+        // Round-robin assignment
+        for (int k = 0; k < static_cast<int>(sorted.size()); ++k)
+            crew_wells[k % crews].push_back(sorted[k]);
+    }
+
+    std::vector<std::vector<int>> crew_routes(crews);
+    double total = 0.0;
+
+    for (int c = 0; c < crews; ++c) {
+        if (crew_wells[c].empty()) {
+            crew_routes[c] = {};  // empty crew: no route
+            continue;
+        }
+        auto [route, dist_c] = nearest_neighbor_route(crew_wells[c], dist);
+        two_opt(route, dist);
+        // Recompute distance after 2-opt (route may have changed)
+        double d = 0.0;
+        for (int k = 0; k + 1 < static_cast<int>(route.size()); ++k)
+            d += dist[route[k]][route[k + 1]];
+        crew_routes[c] = std::move(route);
+        total += d;
+    }
+
+    return {crew_routes, total};
 }
 
 } // namespace utils
