@@ -1,0 +1,35 @@
+
+=== Solution ===
+Selected wells (25): 14 11 12 17 19 20 9 4 7 23 8 13 15 24 18 21 25 16 2 1 3 6 10 5 22
+Per-well regimes:
+  Well 14: current_regime=46 -> new_regime=87.9131
+  Well 11: current_regime=80 -> new_regime=100
+  Well 12: current_regime=69 -> new_regime=100
+  Well 17: current_regime=87 -> new_regime=100
+  Well 19: current_regime=63 -> new_regime=100
+  Well 20: current_regime=96 -> new_regime=100
+  Well 9: current_regime=80 -> new_regime=100
+  Well 4: current_regime=89 -> new_regime=100
+  Well 7: current_regime=64 -> new_regime=100
+  Well 23: current_regime=79 -> new_regime=100
+  Well 8: current_regime=70 -> new_regime=100
+  Well 13: current_regime=27 -> new_regime=57.305
+  Well 15: current_regime=56 -> new_regime=100
+  Well 24: current_regime=76 -> new_regime=100
+  Well 18: current_regime=42 -> new_regime=82.157
+  Well 21: current_regime=75 -> new_regime=100
+  Well 25: current_regime=63 -> new_regime=100
+  Well 16: current_regime=90 -> new_regime=100
+  Well 2: current_regime=83 -> new_regime=100
+  Well 1: current_regime=89 -> new_regime=100
+  Well 3: current_regime=83 -> new_regime=100
+  Well 6: current_regime=64 -> new_regime=100
+  Well 10: current_regime=76 -> new_regime=100
+  Well 5: current_regime=78 -> new_regime=100
+  Well 22: current_regime=77 -> new_regime=100
+Per-crew routes (2 crews):
+  Crew 1: 0 → 13 → 12 → 16 → 11 → 20 → 5 → 21 → 19 → 25 → 2 → 4 → 3 → 8 → 0   (distance: 1352)
+  Crew 2: 0 → 17 → 15 → 10 → 14 → 23 → 18 → 24 → 22 → 9 → 1 → 6 → 7 → 0   (distance: 1241)
+Total distance: 2593
+Total cost: 243
+Total loss (actual): 755.332

@@ -1,0 +1,110 @@
+
+=== Solution ===
+Selected wells (100): 9 23 73 2 8 86 92 94 17 82 64 58 87 70 60 100 50 79 14 80 93 35 51 39 33 59 32 27 57 83 84 96 16 26 72 13 28 68 90 66 77 19 4 34 91 62 40 53 25 45 21 85 3 88 20 55 15 12 30 47 65 89 63 78 99 54 7 52 74 75 1 36 10 69 38 41 56 5 61 71 42 67 22 11 31 29 43 46 81 18 24 49 76 95 97 6 37 44 48 98
+Per-well regimes:
+  Well 9: current_regime=86 -> new_regime=100
+  Well 23: current_regime=57 -> new_regime=99.8677
+  Well 73: current_regime=62 -> new_regime=91.9011
+  Well 2: current_regime=49 -> new_regime=88.2134
+  Well 8: current_regime=74 -> new_regime=100
+  Well 86: current_regime=89 -> new_regime=100
+  Well 92: current_regime=72 -> new_regime=100
+  Well 94: current_regime=79 -> new_regime=100
+  Well 17: current_regime=66 -> new_regime=100
+  Well 82: current_regime=31 -> new_regime=50.4274
+  Well 64: current_regime=75 -> new_regime=100
+  Well 58: current_regime=71 -> new_regime=100
+  Well 87: current_regime=91 -> new_regime=100
+  Well 70: current_regime=70 -> new_regime=100
+  Well 60: current_regime=60 -> new_regime=89.2254
+  Well 100: current_regime=75 -> new_regime=100
+  Well 50: current_regime=44 -> new_regime=80.9296
+  Well 79: current_regime=45 -> new_regime=69.1575
+  Well 14: current_regime=72 -> new_regime=100
+  Well 80: current_regime=74 -> new_regime=100
+  Well 93: current_regime=85 -> new_regime=100
+  Well 35: current_regime=24 -> new_regime=51.794
+  Well 51: current_regime=63 -> new_regime=93.239
+  Well 39: current_regime=77 -> new_regime=100
+  Well 33: current_regime=84 -> new_regime=100
+  Well 59: current_regime=66 -> new_regime=97.2526
+  Well 32: current_regime=53 -> new_regime=94.0406
+  Well 27: current_regime=68 -> new_regime=100
+  Well 57: current_regime=80 -> new_regime=100
+  Well 83: current_regime=67 -> new_regime=98.5904
+  Well 84: current_regime=52 -> new_regime=78.5225
+  Well 96: current_regime=64 -> new_regime=94.5768
+  Well 16: current_regime=76 -> new_regime=100
+  Well 26: current_regime=38 -> new_regime=72.1889
+  Well 72: current_regime=57 -> new_regime=85.2118
+  Well 13: current_regime=76 -> new_regime=100
+  Well 28: current_regime=65 -> new_regime=100
+  Well 68: current_regime=58 -> new_regime=86.5497
+  Well 90: current_regime=70 -> new_regime=100
+  Well 66: current_regime=77 -> new_regime=100
+  Well 77: current_regime=91 -> new_regime=100
+  Well 19: current_regime=18 -> new_regime=43.0533
+  Well 4: current_regime=61 -> new_regime=100
+  Well 34: current_regime=84 -> new_regime=100
+  Well 91: current_regime=48 -> new_regime=73.1711
+  Well 62: current_regime=40 -> new_regime=62.4682
+  Well 40: current_regime=72 -> new_regime=100
+  Well 53: current_regime=66 -> new_regime=97.2526
+  Well 25: current_regime=74 -> new_regime=100
+  Well 45: current_regime=51 -> new_regime=91.127
+  Well 21: current_regime=30 -> new_regime=60.5347
+  Well 85: current_regime=67 -> new_regime=98.5904
+  Well 3: current_regime=82 -> new_regime=100
+  Well 88: current_regime=87 -> new_regime=100
+  Well 20: current_regime=57 -> new_regime=99.8677
+  Well 55: current_regime=89 -> new_regime=100
+  Well 15: current_regime=47 -> new_regime=85.2999
+  Well 12: current_regime=88 -> new_regime=100
+  Well 30: current_regime=86 -> new_regime=100
+  Well 47: current_regime=46 -> new_regime=83.8431
+  Well 65: current_regime=73 -> new_regime=100
+  Well 89: current_regime=63 -> new_regime=93.239
+  Well 63: current_regime=58 -> new_regime=86.5497
+  Well 78: current_regime=63 -> new_regime=93.239
+  Well 99: current_regime=82 -> new_regime=100
+  Well 54: current_regime=71 -> new_regime=100
+  Well 7: current_regime=81 -> new_regime=100
+  Well 52: current_regime=64 -> new_regime=94.5768
+  Well 74: current_regime=45 -> new_regime=69.1575
+  Well 75: current_regime=84 -> new_regime=100
+  Well 1: current_regime=63 -> new_regime=100
+  Well 36: current_regime=68 -> new_regime=100
+  Well 10: current_regime=72 -> new_regime=100
+  Well 69: current_regime=78 -> new_regime=100
+  Well 38: current_regime=67 -> new_regime=100
+  Well 41: current_regime=79 -> new_regime=100
+  Well 56: current_regime=42 -> new_regime=65.1439
+  Well 5: current_regime=91 -> new_regime=100
+  Well 61: current_regime=72 -> new_regime=100
+  Well 71: current_regime=95 -> new_regime=100
+  Well 42: current_regime=95 -> new_regime=100
+  Well 67: current_regime=96 -> new_regime=100
+  Well 22: current_regime=67 -> new_regime=100
+  Well 11: current_regime=66 -> new_regime=100
+  Well 31: current_regime=84 -> new_regime=100
+  Well 29: current_regime=80 -> new_regime=100
+  Well 43: current_regime=83 -> new_regime=100
+  Well 46: current_regime=78 -> new_regime=100
+  Well 81: current_regime=63 -> new_regime=93.239
+  Well 18: current_regime=26 -> new_regime=54.7075
+  Well 24: current_regime=56 -> new_regime=98.4109
+  Well 49: current_regime=69 -> new_regime=100
+  Well 76: current_regime=39 -> new_regime=61.1303
+  Well 95: current_regime=95 -> new_regime=100
+  Well 97: current_regime=86 -> new_regime=100
+  Well 6: current_regime=79 -> new_regime=100
+  Well 37: current_regime=80 -> new_regime=100
+  Well 44: current_regime=50 -> new_regime=89.6702
+  Well 48: current_regime=70 -> new_regime=100
+  Well 98: current_regime=54 -> new_regime=81.1982
+Per-crew routes (2 crews):
+  Crew 1: 0 → 24 → 20 → 23 → 25 → 3 → 27 → 22 → 16 → 15 → 26 → 8 → 17 → 1 → 30 → 7 → 34 → 32 → 5 → 21 → 31 → 11 → 54 → 67 → 57 → 56 → 38 → 37 → 52 → 42 → 61 → 50 → 63 → 64 → 45 → 39 → 84 → 75 → 77 → 79 → 91 → 71 → 89 → 86 → 95 → 83 → 99 → 70 → 68 → 93 → 73 → 0   (distance: 3884)
+  Crew 2: 0 → 28 → 4 → 14 → 18 → 9 → 2 → 13 → 33 → 29 → 10 → 6 → 19 → 12 → 53 → 47 → 49 → 51 → 36 → 59 → 48 → 60 → 58 → 46 → 41 → 66 → 65 → 35 → 55 → 43 → 44 → 62 → 40 → 74 → 87 → 97 → 88 → 98 → 96 → 72 → 85 → 76 → 80 → 81 → 78 → 69 → 82 → 92 → 90 → 94 → 100 → 0   (distance: 3985)
+Total distance: 7869
+Total cost: 757
+Total loss (actual): 3157.96

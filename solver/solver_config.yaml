@@ -31,16 +31,16 @@ solver:
                     # now; multi-crew partitioning is a planned extension).
                     # Typically 1–5.
 
-  max_quantity: .inf  # Maximum number of wells that may be selected globally.
-                    # (default: unconstrained)
+  max_quantity:     # Maximum number of wells that may be selected globally.
+                    # (default: unconstrained — leave empty to use the C++ default INT_MAX)
 
-  max_cost: .inf    # Maximum total intervention cost  sum C[i] over selected wells.
-                    # (default: unconstrained)
+  max_cost:         # Maximum total intervention cost  sum C[i] over selected wells.
+                    # (default: unconstrained — leave empty to use the C++ default DBL_MAX)
 
-  max_loss: .inf    # Maximum allowed net-loss  sum (G[i]-N[i])*newregime[i]/100.
+  max_loss:         # Maximum allowed net-loss  sum (G[i]-N[i])*newregime[i]/100.
                     # During selection a conservative worst-case estimate is used
                     # (newregime = 100 for every selected well).
-                    # (default: unconstrained)
+                    # (default: unconstrained — leave empty to use the C++ default DBL_MAX)
 
 # ---------------------------------------------------------------------------
 # Output

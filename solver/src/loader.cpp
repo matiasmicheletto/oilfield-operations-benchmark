@@ -34,9 +34,13 @@ void load_yaml_config(SolverConfig& cfg, const std::string& path) {
         if (s["max_wells"]) cfg.max_wells = s["max_wells"].as<int>();
         if (s["tolerance"]) cfg.tolerance = s["tolerance"].as<double>();
         if (s["crews"])     cfg.crews     = s["crews"].as<int>();
-        if (s["max_quantity"]) cfg.max_quantity = s["max_quantity"].as<int>();
-        if (s["max_cost"])     cfg.max_cost     = s["max_cost"].as<double>();
-        if (s["max_loss"])     cfg.max_loss     = s["max_loss"].as<double>();
+        // These three are optional; an absent or null node leaves the C++ default intact.
+        if (s["max_quantity"] && s["max_quantity"].IsScalar() && s["max_quantity"].Scalar() != "")
+            cfg.max_quantity = s["max_quantity"].as<int>();
+        if (s["max_cost"]     && s["max_cost"].IsScalar()     && s["max_cost"].Scalar()     != "")
+            cfg.max_cost     = s["max_cost"].as<double>();
+        if (s["max_loss"]     && s["max_loss"].IsScalar()     && s["max_loss"].Scalar()     != "")
+            cfg.max_loss     = s["max_loss"].as<double>();
     }
 
     if (root["output"]) {
