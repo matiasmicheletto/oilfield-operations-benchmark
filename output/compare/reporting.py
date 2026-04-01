@@ -86,13 +86,14 @@ def _layout_full(rows: list[dict]) -> None:
     def row(r):
         gg = _gap_str(_gap(r["cplex_distance"], r["greedy_distance"]))
         gs = _gap_str(_gap(r["cplex_distance"], r.get("scip_distance")))
-        sn = str(r["scip_n"]) if r.get("scip_n") is not None else "N/A"
+        cn = str(r["cplex_n"]) if r.get("cplex_n") is not None else "N/A"
+        sn = str(r["scip_n"])  if r.get("scip_n")  is not None else "N/A"
         return (f"{r['stem']:<{W['inst']}} "
                 f"{_fmt(r['cplex_distance']):>{W['cd']}} {_fmt(r['greedy_distance']):>{W['gd']}} {gg:>{W['gg']}} "
                 f"{_fmt(r.get('scip_distance')):>{W['sd']}} {gs:>{W['gs']}} "
                 f"{_fmt(r['cplex_cost']):>{W['cc']}} {_fmt(r['greedy_cost']):>{W['gc']}} {_fmt(r.get('scip_cost')):>{W['sc']}} "
                 f"{_fmt(r['cplex_loss']):>{W['cl']}} {_fmt(r['greedy_loss']):>{W['gl']}} {_fmt(r.get('scip_loss')):>{W['sl']}} "
-                f"{r['cplex_n']:>{W['cn']}} {r['greedy_n']:>{W['gn']}} {sn:>{W['sn']}}")
+                f"{cn:>{W['cn']}} {r['greedy_n']:>{W['gn']}} {sn:>{W['sn']}}")
 
     avg_gg = _avg_gap_str(_avg_gap("cplex_distance", "greedy_distance", rows))
     avg_gs = _avg_gap_str(_avg_gap("cplex_distance", "scip_distance",   rows))
@@ -119,12 +120,13 @@ def _layout_cplex_greedy(rows: list[dict]) -> None:
          f"{'CPLEX n':>{W['cn']}} {'Grdy n':>{W['gn']}}")
 
     def row(r):
-        g = _gap_str(_gap(r["cplex_distance"], r["greedy_distance"]))
+        g  = _gap_str(_gap(r["cplex_distance"], r["greedy_distance"]))
+        cn = str(r["cplex_n"]) if r.get("cplex_n") is not None else "N/A"
         return (f"{r['stem']:<{W['inst']}} "
                 f"{_fmt(r['cplex_distance']):>{W['cd']}} {_fmt(r['greedy_distance']):>{W['gd']}} {g:>{W['gap']}} "
                 f"{_fmt(r['cplex_cost']):>{W['cc']}} {_fmt(r['greedy_cost']):>{W['gc']}} "
                 f"{_fmt(r['cplex_loss']):>{W['cl']}} {_fmt(r['greedy_loss']):>{W['gl']}} "
-                f"{r['cplex_n']:>{W['cn']}} {r['greedy_n']:>{W['gn']}}")
+                f"{cn:>{W['cn']}} {r['greedy_n']:>{W['gn']}}")
 
     avg_g = _avg_gap_str(_avg_gap("cplex_distance", "greedy_distance", rows))
     avg_row = (f"{'AVERAGE':<{W['inst']}} "

@@ -5,8 +5,8 @@ set -euo pipefail
 # User-configurable parameters
 # -------------------------------
 CONFIG_FILE="generator_config.yaml"
-NUM_INSTANCES=5
-N_WELLS=25
+NUM_INSTANCES=2
+N_WELLS=10
 N_BATTERIES=2
 DRY_RUN=false # Set to true to print commands without executing them
 CPLEX_BIN="" # Optional absolute path to CPLEX executable if not in PATH
@@ -62,10 +62,17 @@ if ! command -v python >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$INSTANCES_DIR"
-mkdir -p "$CPLEX_OUTPUT_DIR"
-mkdir -p "$GREEDY_OUTPUT_DIR"
-mkdir -p "$SCIP_OUTPUT_DIR"
+mkdir -p "$INSTANCES_DIR" "$CPLEX_OUTPUT_DIR" "$GREEDY_OUTPUT_DIR" "$SCIP_OUTPUT_DIR"
+
+# Clear previous instances and optimizer output so stale results don't mix with new ones
+if [[ "$DRY_RUN" != "true" ]]; then
+  find "$INSTANCES_DIR"     -maxdepth 1 -name "*.dat" -delete
+  find "$INSTANCES_DIR"     -maxdepth 1 -name "*.zpl" -delete
+  find "$INSTANCES_DIR"     -maxdepth 1 -name "*.lp"  -delete
+  find "$CPLEX_OUTPUT_DIR"  -maxdepth 1 -name "*.sol" -delete
+  find "$GREEDY_OUTPUT_DIR" -maxdepth 1 -name "*.txt" -delete
+  find "$SCIP_OUTPUT_DIR"   -maxdepth 1 -name "*.txt" -delete
+fi
 
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "DRY_RUN is enabled. Commands will be printed but not executed."
@@ -85,9 +92,10 @@ if [[ "$DRY_RUN" != "true" ]]; then
 fi
 
 echo "[2/5] Converting ZPL models to LP in $INSTANCES_DIR"
+# LP files are generated directly by main.py (step 1) via lp_generator.py,
+# so zimpl is only needed if you want to re-convert ZPL files independently.
 if ! command -v zimpl >/dev/null 2>&1; then
-  echo "Warning: 'zimpl' is not available in PATH — skipping step 2."
-  echo "         Install zimpl or add it to PATH to enable ZPL → LP conversion."
+  echo "Note: 'zimpl' is not in PATH — skipping zimpl conversion (LP files already written by generator)."
 else
   shopt -s nullglob
   zpl_files=("$INSTANCES_DIR"/*.zpl)
@@ -168,22 +176,20 @@ if ! command -v scip >/dev/null 2>&1; then
   echo "         Install SCIP or add it to PATH to enable ZPL solving."
 else
   shopt -s nullglob
-  zpl_files_scip=("$INSTANCES_DIR"/*.zpl)
-  if (( ${#zpl_files_scip[@]} == 0 )); then
-    echo "Warning: no .zpl files found in '$INSTANCES_DIR'."
+  lp_files_scip=("$INSTANCES_DIR"/*.lp)
+  if (( ${#lp_files_scip[@]} == 0 )); then
+    echo "Warning: no .lp files found in '$INSTANCES_DIR' — run step 2 (zimpl) first."
   else
-    for zpl_path in "${zpl_files_scip[@]}"; do
-      zpl_name="$(basename "$zpl_path")"
-      stem="${zpl_name%.zpl}"
+    for lp_path in "${lp_files_scip[@]}"; do
+      lp_name="$(basename "$lp_path")"
+      stem="${lp_name%.lp}"
       sol_path="$SCIP_OUTPUT_DIR/${stem}.txt"
 
-      echo "  - Solving $zpl_name -> $(basename "$sol_path")"
+      echo "  - Solving $lp_name -> $(basename "$sol_path")"
       if [[ "$DRY_RUN" == "true" ]]; then
-        echo "    scip -f $zpl_path | tee $sol_path"
+        echo "    scip -f $lp_path | tee $sol_path"
       else
-        # SCIP reads the ZPL file directly; run it from the instances directory
-        # so relative paths inside the ZPL (data files) resolve correctly.
-        (cd "$INSTANCES_DIR" && scip -f "$zpl_name") | tee "$sol_path"
+        scip -f "$lp_path" | tee "$sol_path"
       fi
     done
   fi
