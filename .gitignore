@@ -2,10 +2,18 @@
 generator/venv/
 generator/__pycache__/
 generator/core/__pycache__/
-generator/instances/
+output/__pycache__/
+output/compare/__pycache__/
 
+# Ignore solver build artifacts
 solver/bin/
 solver/obj/
+
+# Generated files
+generator/instances/
+output/cplex/
+output/greedy/
+output/scip/
 
 # Ignore documentation build artifacts
 doc/*.pdf

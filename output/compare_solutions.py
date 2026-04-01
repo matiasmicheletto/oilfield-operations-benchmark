@@ -44,48 +44,54 @@ def main() -> int:
                         metavar="FILE", help="Optional path to write a CSV summary")
     args = parser.parse_args()
 
-    for d, label in [(args.cplex, "CPLEX"), (args.greedy, "greedy")]:
-        if not d.exists():
-            print(f"Error: {label} directory not found: {d}", file=sys.stderr)
-            return 1
+    if not args.greedy.exists():
+        print(f"Error: greedy directory not found: {args.greedy}", file=sys.stderr)
+        return 1
+
+    cplex_dir: Path | None = args.cplex if args.cplex.exists() else None
+    if not cplex_dir:
+        print(f"[warn] CPLEX directory not found: {args.cplex} — CPLEX columns will be omitted.",
+              file=sys.stderr)
 
     scip_dir: Path | None = args.scip if args.scip.exists() else None
     if not scip_dir:
-        msg = f"[warn] SCIP directory not found: {args.scip} — SCIP columns will be omitted."
-        print(msg, file=sys.stderr)
+        print(f"[warn] SCIP directory not found: {args.scip} — SCIP columns will be omitted.",
+              file=sys.stderr)
 
-    matched = match_instances(args.cplex, args.greedy, scip_dir)
+    matched = match_instances(args.greedy, cplex_dir, scip_dir)
     if not matched:
-        print("No matching instance pairs found.", file=sys.stderr)
+        print("No greedy solution files found.", file=sys.stderr)
         return 1
 
-    info = f"[cplex: {args.cplex}]  [greedy: {args.greedy}]"
+    parts = [f"greedy: {args.greedy}"]
+    if cplex_dir:
+        parts.append(f"cplex: {cplex_dir}")
     if scip_dir:
-        info += f"  [scip: {scip_dir}]"
-    print(f"\nComparing {len(matched)} instance(s)  {info}\n")
+        parts.append(f"scip: {scip_dir}")
+    print(f"\nComparing {len(matched)} instance(s)  [{']  ['.join(parts)}]\n")
 
     rows = []
     for stem, cplex_path, greedy_path, scip_path in matched:
         print(f"  Parsing {stem} ...")
-        c = parse_cplex_sol(cplex_path)
+        c = parse_cplex_sol(cplex_path) if cplex_path else None
         g = parse_greedy_txt(greedy_path)
-        if c is None or g is None:
+        if g is None:
             continue
         s = parse_scip_txt(scip_path) if scip_path else None
         rows.append({
             "stem":             stem,
-            "cplex_distance":   c["distance"],
+            "cplex_distance":   c["distance"] if c else None,
             "greedy_distance":  g["distance"],
             "scip_distance":    s["distance"] if s else None,
-            "cplex_cost":       c["cost"],
+            "cplex_cost":       c["cost"]     if c else None,
             "greedy_cost":      g["cost"],
-            "scip_cost":        s["cost"] if s else None,
-            "cplex_loss":       c["loss"],
+            "scip_cost":        s["cost"]     if s else None,
+            "cplex_loss":       c["loss"]     if c else None,
             "greedy_loss":      g["loss"],
-            "scip_loss":        s["loss"] if s else None,
-            "cplex_n":          c["n_wells"],
+            "scip_loss":        s["loss"]     if s else None,
+            "cplex_n":          c["n_wells"]  if c else None,
             "greedy_n":         g["n_wells"],
-            "scip_n":           s["n_wells"] if s else None,
+            "scip_n":           s["n_wells"]  if s else None,
         })
 
     if not rows:

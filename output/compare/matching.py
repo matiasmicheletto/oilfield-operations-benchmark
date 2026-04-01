@@ -22,28 +22,28 @@ def extract_stem(filename: str) -> str:
 
 
 def match_instances(
-    cplex_dir: Path,
     greedy_dir: Path,
+    cplex_dir: Path | None = None,
     scip_dir: Path | None = None,
 ) -> list[tuple]:
-    """Return a list of (stem, cplex_path, greedy_path, scip_path) tuples.
+    """Return a list of (stem, cplex_path_or_None, greedy_path, scip_path_or_None).
 
-    Only stems present in both cplex_dir and greedy_dir are returned.
-    scip_path is None when scip_dir is not provided or no matching file exists.
-    Unmatched files are reported as informational warnings.
+    greedy is the required base — every greedy file produces one row.
+    CPLEX and SCIP files are joined by stem when available; their path is None otherwise.
+    Stems present in CPLEX/SCIP but absent from greedy are reported and skipped.
     """
-    cplex_files  = {extract_stem(f.name): f for f in cplex_dir.glob("*.sol")}
     greedy_files = {extract_stem(f.name): f for f in greedy_dir.glob("*.txt")}
-    scip_files   = {extract_stem(f.name): f for f in scip_dir.glob("*.txt")} if scip_dir else {}
+    cplex_files  = {extract_stem(f.name): f for f in cplex_dir.glob("*.sol")} if cplex_dir else {}
+    scip_files   = {extract_stem(f.name): f for f in scip_dir.glob("*.txt")}  if scip_dir  else {}
 
-    stems = sorted(cplex_files.keys() & greedy_files.keys())
+    stems = sorted(greedy_files.keys())
 
-    only_cplex  = cplex_files.keys()  - greedy_files.keys()
-    only_greedy = greedy_files.keys() - cplex_files.keys()
+    only_cplex = cplex_files.keys() - greedy_files.keys()
+    only_scip  = scip_files.keys()  - greedy_files.keys()
 
     if only_cplex:
         print(f"[info] CPLEX-only instances (no greedy match): {sorted(only_cplex)}")
-    if only_greedy:
-        print(f"[info] Greedy-only instances (no CPLEX match): {sorted(only_greedy)}")
+    if only_scip:
+        print(f"[info] SCIP-only instances (no greedy match): {sorted(only_scip)}")
 
-    return [(s, cplex_files[s], greedy_files[s], scip_files.get(s)) for s in stems]
+    return [(s, cplex_files.get(s), greedy_files[s], scip_files.get(s)) for s in stems]
