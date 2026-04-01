@@ -1,9 +1,5 @@
 # Ignore build artifacts and temporary files
-generator/venv/
-generator/__pycache__/
-generator/core/__pycache__/
-output/__pycache__/
-output/compare/__pycache__/
+**/__pycache__/
 
 # Ignore solver build artifacts
 solver/bin/
