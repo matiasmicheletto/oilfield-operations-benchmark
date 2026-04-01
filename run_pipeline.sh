@@ -1,8 +1,25 @@
 #!/usr/bin/env bash
+
+# -------------------------------
+# Run the full pipeline: instance generation, ILP solving with CPLEX, and greedy heuristic solving.
+
+# Usage: ./run_pipeline.sh [options]
+
+# Options:
+#   -n, --instances N    Number of instances to generate (default: 2)
+#   -w, --wells N        Number of wells per instance    (default: 10)
+#   -b, --batteries N    Number of batteries per instance (default: 2)
+#   -d, --dry-run        Print commands without executing them
+#   -h, --help           Show this help message
+
+# Example: ./run_pipeline.sh -n 5 -w 15 -b 3
+# -------------------------------
+
+
 set -euo pipefail
 
 # -------------------------------
-# User-configurable parameters
+# User-configurable parameters (defaults; overridable via CLI flags)
 # -------------------------------
 CONFIG_FILE="generator_config.yaml"
 NUM_INSTANCES=2
@@ -10,6 +27,32 @@ N_WELLS=10
 N_BATTERIES=2
 DRY_RUN=false # Set to true to print commands without executing them
 CPLEX_BIN="" # Optional absolute path to CPLEX executable if not in PATH
+
+# -------------------------------
+# Parse command-line arguments
+# -------------------------------
+usage() {
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "Options:"
+  echo "  -n, --instances N    Number of instances to generate (default: $NUM_INSTANCES)"
+  echo "  -w, --wells N        Number of wells per instance    (default: $N_WELLS)"
+  echo "  -b, --batteries N    Number of batteries per instance (default: $N_BATTERIES)"
+  echo "  -d, --dry-run        Print commands without executing them"
+  echo "  -h, --help           Show this help message"
+  exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -n|--instances)  NUM_INSTANCES="$2"; shift 2 ;;
+    -w|--wells)      N_WELLS="$2";       shift 2 ;;
+    -b|--batteries)  N_BATTERIES="$2";   shift 2 ;;
+    -d|--dry-run)    DRY_RUN=true;       shift   ;;
+    -h|--help)       usage ;;
+    *) echo "Unknown option: $1" >&2; usage ;;
+  esac
+done
 
 # Optional: override directories if needed
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

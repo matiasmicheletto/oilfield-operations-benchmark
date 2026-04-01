@@ -22,33 +22,51 @@ A modular Python library for generating synthetic oilfield datasets tailored for
 * **Solver Ready:** Automatically writes `.zpl` files with relative paths to data files.
 * **Integrated Constraints:** Injects YAML limits (max loss, cost, crews) directly into the model.
 
+### 5. LP Model Generator (`LPGenerator`)
+* **Zimpl-Free:** Writes standard LP-format files directly from instance data — no `zimpl` binary required.
+* **SCIP/CPLEX Compatible:** Generated `.lp` files can be fed directly to SCIP, CPLEX, or any LP-compatible solver.
+
 ---
 
-## 📁 Library Structure
+## 📁 Repository Structure
 ```
 oilfield-operations-benchmark/
-├── core/
-│   ├── battery_generator.py  # Battery assignment and target generation
-│   ├── road_generator.py     # Standalone road network prototype/reference
-│   ├── spatial_generator.py  # Terrain, well placement, road network, distance matrix
-│   ├── well_generator.py     # Well parameter sampling and visualization
-│   └── zpl_generator.py     # Zimpl (.zpl) model file writer
-├── main.py              # Entry point for running the packager
+├── run_pipeline.sh             # End-to-end pipeline script
+├── generator/
+│   ├── main.py                 # Entry point for instance generation
+│   ├── generator_config.yaml   # Default configuration
+│   ├── requirements.txt        # Python dependencies
+│   ├── instances/              # Generated instance files (output)
+│   └── core/
+│       ├── battery_generator.py  # Battery assignment and target generation
+│       ├── lp_generator.py       # LP model file writer (zimpl-free)
+│       ├── spatial_generator.py  # Terrain, well placement, road network, distances
+│       ├── well_generator.py     # Well parameter sampling and visualization
+│       └── zpl_generator.py      # Zimpl (.zpl) model file writer
 ├── solver/
-|   ├── include/
-|   |   └── utils.h       # Utility functions for the solver
-|   |   └── solver.h      # Header for the optimization solver
-|   |   └── loader.h      # Header for loading generated instances
-|   |   └── models.h      # Header for optimization models
-|   └── src/
-|       └── utils.cpp       # Utility function implementations
-|       └── solve_main.cpp  # Solver entry point for testing with generated instances
-|       └── solver.cpp      # Optimization solver implementation 
-|       └── loader.cpp      # Instance loading and parsing logic
-├── LICENSE                 # License information (GNU GPL v3)
-├── requirements.txt        # Python dependencies
-├── generator_config.yaml   # Default configuration for instance generation
-└── README.md               # This documentation
+│   ├── Makefile
+│   ├── solver_config.yaml
+│   ├── include/
+│   │   ├── loader.h
+│   │   ├── models.h
+│   │   ├── solver.h
+│   │   └── utils.h
+│   └── src/
+│       ├── loader.cpp
+│       ├── solve_main.cpp
+│       ├── solver.cpp
+│       └── utils.cpp
+├── output/
+│   ├── compare_solutions.py    # Solution comparison entry point
+│   ├── compare/
+│   │   ├── parsers.py          # Parsers for CPLEX, SCIP, and greedy output
+│   │   ├── matching.py         # Stem-based file matching across solver dirs
+│   │   └── reporting.py        # Console table and CSV output
+│   ├── cplex/                  # CPLEX .sol output files
+│   ├── greedy/                 # Greedy solver .txt output files
+│   └── scip/                   # SCIP .txt output files
+├── LICENSE
+└── readme.md
 ```
 
 ### Setup
@@ -61,21 +79,75 @@ Or install from [`requirements.txt`](requirements.txt):
 `pip install -r requirements.txt`
 
 ### 📖 Usage
-To generate the entire dataset (Parameters, Batteries, Distances, Zimpl Models, and Plots):
+
+#### Full Pipeline
+
+Run the entire pipeline (generate instances → solve with SCIP/CPLEX → solve with greedy):
 
 ```bash
+bash run_pipeline.sh [options]
+```
+
+**Options:**
+
+| Flag | Long form | Description | Default |
+|------|-----------|-------------|---------|
+| `-n N` | `--instances N` | Number of instances to generate | 2 |
+| `-w N` | `--wells N` | Number of wells per instance | 10 |
+| `-b N` | `--batteries N` | Number of batteries per instance | 2 |
+| `-d` | `--dry-run` | Print commands without executing | false |
+| `-h` | `--help` | Show help message | — |
+
+**Examples:**
+
+```bash
+bash run_pipeline.sh -w 25 -b 2 -n 5
+bash run_pipeline.sh --wells 100 --batteries 3 --instances 10
+bash run_pipeline.sh -w 10 -n 2 --dry-run
+```
+
+**Pipeline steps:**
+1. Generate instances (`.dat`, `.zpl`, `.lp` files)
+2. Convert ZPL → LP via `zimpl` (skipped if `zimpl` not in PATH — LP files already written in step 1)
+3. Solve LP models with CPLEX (skipped if `cplex` not in PATH)
+4. Solve LP models with SCIP (skipped if `scip` not in PATH)
+5. Solve instances with greedy heuristic
+
+#### Generator Only
+
+To generate instances without running solvers:
+
+```bash
+cd generator
 python main.py [config.yaml]
 ```
 
-If no configuration is provided, it defaults to [`generator_config.yaml`](generator_config.yaml).
-
-You can also override parameters from CLI using dot notation:
+You can override parameters from the CLI using dot notation:
 
 ```bash
-python main.py config.yaml \
-  --set general.num_instances=2 \
-  --set spatial.num_peaks=10 \
-  --set spatial.elevation_amplitude=160
+python main.py generator_config.yaml \
+  --set general.num_instances=5 \
+  --set general.n_wells=50 \
+  --set spatial.num_peaks=10
+```
+
+#### Compare Solutions
+
+After running the pipeline, compare solver outputs:
+
+```bash
+cd output
+python compare_solutions.py [--cplex DIR] [--greedy DIR] [--scip DIR] [--csv FILE]
+```
+
+All directory arguments default to `output/cplex/`, `output/greedy/`, and `output/scip/`. CPLEX and SCIP directories are optional — the table layout adapts automatically to whichever solvers were run.
+
+```bash
+# Greedy only
+python compare_solutions.py
+
+# Greedy + SCIP with CSV export
+python compare_solutions.py --scip scip/ --csv results.csv
 ```
 
 
@@ -296,16 +368,27 @@ spatial:
 
 ---
 ## 📂 Output Structure
-For each instance from 1 to `num_instances`, the following files are generated in the `instances/` directory:
+
+### Instance files (`generator/instances/`)
+For each instance from 1 to `num_instances`:
 ```
 instances/
-├── parameters_[num_wells]_[num_batteries]_[instance_id].dat
-├── batteries_[num_wells]_[num_batteries]_[instance_id].dat
-├── distance_[num_wells]_[num_batteries]_[instance_id].dat
-├── model_[num_wells]_[num_batteries]_[instance_id].zpl
-├── well_bar_[instance_id].png
-├── well_hist_[instance_id].png
-└── spatial_network_[instance_id].png
+├── parameters_[W]_[B]_[id].dat      # Well parameters
+├── batteries_[W]_[B]_[id].dat       # Battery targets
+├── distance_[W]_[B]_[id].dat        # Distance matrix
+├── model_[W]_[B]_[id].zpl           # Zimpl model (requires zimpl to solve)
+├── model_[W]_[B]_[id].lp            # LP model (direct SCIP/CPLEX input)
+├── well_bar_[id].png
+├── well_hist_[id].png
+└── spatial_network_[id].png
+```
+
+### Solver output (`output/`)
+```
+output/
+├── cplex/greedy_[W]_[B]_[id].sol    # CPLEX XML solution files
+├── greedy/greedy_[W]_[B]_[id].txt   # Greedy heuristic solution files
+└── scip/model_[W]_[B]_[id].txt      # SCIP solution files
 ```
 
 ### Parameters Data Files (`.dat`)
@@ -384,11 +467,34 @@ A tab-separated file with two columns:
 
 ---
 
-### Solver usage
+### Greedy Solver
+
+The C++ greedy heuristic solver is built with `make` in the `solver/` directory:
 
 ```bash
-solve -p PARAM_FILE -b BATTERY_FILE -d DIST_FILE [OPTIONS]
-solve -c CONFIG_FILE [OPTIONS]
+cd solver && make
+```
+
+Then run directly:
+
+```bash
+solver/bin/solve -c solver_config.yaml -p parameters.dat -b batteries.dat -d distance.dat -o solution.txt
+```
+
+The `run_pipeline.sh` script builds and invokes the solver automatically.
+
+### SCIP Solver
+
+SCIP must be installed and available in PATH. The pipeline feeds `.lp` files (generated in step 1) directly to SCIP — no `zimpl` installation required:
+
+```bash
+scip -f generator/instances/model_10_2_1.lp
+```
+
+For reproducible results matching a reference environment, use SCIP 9.2.4 in optimized mode. The Manjaro/Arch package ships a debug build (10.0.1); install the official prebuilt from https://www.scipopt.org or via conda:
+
+```bash
+conda install -c conda-forge scip=9.2
 ```
 
 ---
