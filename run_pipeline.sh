@@ -19,6 +19,7 @@ INSTANCES_DIR="$GENERATOR_DIR/instances"
 OUTPUT_DIR="$ROOT_DIR/output"
 CPLEX_OUTPUT_DIR="$OUTPUT_DIR/cplex"
 GREEDY_OUTPUT_DIR="$OUTPUT_DIR/greedy"
+SCIP_OUTPUT_DIR="$OUTPUT_DIR/scip"
 
 # -------------------------------
 # Python environment activation
@@ -64,12 +65,13 @@ fi
 mkdir -p "$INSTANCES_DIR"
 mkdir -p "$CPLEX_OUTPUT_DIR"
 mkdir -p "$GREEDY_OUTPUT_DIR"
+mkdir -p "$SCIP_OUTPUT_DIR"
 
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "DRY_RUN is enabled. Commands will be printed but not executed."
 fi
 
-echo "[1/4] Generating instances with main.py"
+echo "[1/5] Generating instances with main.py"
 gen_cmd=(
   python "$GENERATOR_DIR/main.py" "$GENERATOR_DIR/$CONFIG_FILE"
   --set "general.num_instances=${NUM_INSTANCES}"
@@ -82,7 +84,7 @@ if [[ "$DRY_RUN" != "true" ]]; then
   "${gen_cmd[@]}"
 fi
 
-echo "[2/4] Converting ZPL models to LP in $INSTANCES_DIR"
+echo "[2/5] Converting ZPL models to LP in $INSTANCES_DIR"
 if ! command -v zimpl >/dev/null 2>&1; then
   echo "Warning: 'zimpl' is not available in PATH — skipping step 2."
   echo "         Install zimpl or add it to PATH to enable ZPL → LP conversion."
@@ -114,7 +116,7 @@ else
   fi
 fi
 
-echo "[3/4] Solving LP models with CPLEX and writing solutions to $CPLEX_OUTPUT_DIR"
+echo "[3/5] Solving LP models with CPLEX and writing solutions to $CPLEX_OUTPUT_DIR"
 # Resolve CPLEX executable. In DRY_RUN mode this is optional.
 if [[ -n "$CPLEX_BIN" ]]; then
   if [[ ! -x "$CPLEX_BIN" ]]; then
@@ -157,9 +159,41 @@ else
 fi
 
 # -----------------------------------------------------------------------
-# Step 4: Greedy heuristic solver
+# Step 4: SCIP solver
 # -----------------------------------------------------------------------
-echo "[4/4] Running greedy heuristic solver on all instances"
+echo "[4/5] Solving ZPL models with SCIP and writing solutions to $SCIP_OUTPUT_DIR"
+
+if ! command -v scip >/dev/null 2>&1; then
+  echo "Warning: 'scip' is not available in PATH — skipping step 5."
+  echo "         Install SCIP or add it to PATH to enable ZPL solving."
+else
+  shopt -s nullglob
+  zpl_files_scip=("$INSTANCES_DIR"/*.zpl)
+  if (( ${#zpl_files_scip[@]} == 0 )); then
+    echo "Warning: no .zpl files found in '$INSTANCES_DIR'."
+  else
+    for zpl_path in "${zpl_files_scip[@]}"; do
+      zpl_name="$(basename "$zpl_path")"
+      stem="${zpl_name%.zpl}"
+      sol_path="$SCIP_OUTPUT_DIR/${stem}.txt"
+
+      echo "  - Solving $zpl_name -> $(basename "$sol_path")"
+      if [[ "$DRY_RUN" == "true" ]]; then
+        echo "    scip -f $zpl_path | tee $sol_path"
+      else
+        # SCIP reads the ZPL file directly; run it from the instances directory
+        # so relative paths inside the ZPL (data files) resolve correctly.
+        (cd "$INSTANCES_DIR" && scip -f "$zpl_name") | tee "$sol_path"
+      fi
+    done
+  fi
+  echo "Done. SCIP solutions written to: $SCIP_OUTPUT_DIR"
+fi
+
+# -----------------------------------------------------------------------
+# Step 5: Greedy heuristic solver
+# -----------------------------------------------------------------------
+echo "[5/5] Running greedy heuristic solver on all instances"
 
 SOLVER_BIN="$SOLVER_DIR/bin/solve"
 SOLVER_CONFIG="$SOLVER_DIR/solver_config.yaml"
