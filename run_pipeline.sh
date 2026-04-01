@@ -121,7 +121,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
   echo "DRY_RUN is enabled. Commands will be printed but not executed."
 fi
 
-echo "[1/5] Generating instances with main.py"
+echo "[1/6] Generating instances with main.py"
 gen_cmd=(
   python "$GENERATOR_DIR/main.py" "$GENERATOR_DIR/$CONFIG_FILE"
   --set "general.num_instances=${NUM_INSTANCES}"
@@ -134,7 +134,7 @@ if [[ "$DRY_RUN" != "true" ]]; then
   "${gen_cmd[@]}"
 fi
 
-echo "[2/5] Converting ZPL models to LP in $INSTANCES_DIR"
+echo "[2/6] Converting ZPL models to LP in $INSTANCES_DIR"
 # LP files are generated directly by main.py (step 1) via lp_generator.py,
 # so zimpl is only needed if you want to re-convert ZPL files independently.
 if ! command -v zimpl >/dev/null 2>&1; then
@@ -167,7 +167,7 @@ else
   fi
 fi
 
-echo "[3/5] Solving LP models with CPLEX and writing solutions to $CPLEX_OUTPUT_DIR"
+echo "[3/6] Solving LP models with CPLEX and writing solutions to $CPLEX_OUTPUT_DIR"
 # Resolve CPLEX executable. In DRY_RUN mode this is optional.
 if [[ -n "$CPLEX_BIN" ]]; then
   if [[ ! -x "$CPLEX_BIN" ]]; then
@@ -212,7 +212,7 @@ fi
 # -----------------------------------------------------------------------
 # Step 4: SCIP solver
 # -----------------------------------------------------------------------
-echo "[4/5] Solving ZPL models with SCIP and writing solutions to $SCIP_OUTPUT_DIR"
+echo "[4/6] Solving ZPL models with SCIP and writing solutions to $SCIP_OUTPUT_DIR"
 
 if ! command -v scip >/dev/null 2>&1; then
   echo "Warning: 'scip' is not available in PATH — skipping step 5."
@@ -242,7 +242,7 @@ fi
 # -----------------------------------------------------------------------
 # Step 5: Greedy heuristic solver
 # -----------------------------------------------------------------------
-echo "[5/5] Running greedy heuristic solver on all instances"
+echo "[5/6] Running greedy heuristic solver on all instances"
 
 SOLVER_BIN="$SOLVER_DIR/bin/solve"
 SOLVER_CONFIG="$SOLVER_DIR/solver_config.yaml"
@@ -309,3 +309,20 @@ else
 fi
 
 echo "Done. Greedy solutions written to: $GREEDY_OUTPUT_DIR"
+
+# -----------------------------------------------------------------------
+# Step 6: Compare solutions and write benchmark CSV
+# -----------------------------------------------------------------------
+COMPARE_SCRIPT="$OUTPUT_DIR/compare_solutions.py"
+BENCHMARK_CSV="$OUTPUT_DIR/benchmark.csv"
+
+echo "[6/6] Comparing solutions and writing results to $BENCHMARK_CSV"
+if [[ ! -f "$COMPARE_SCRIPT" ]]; then
+  echo "Warning: compare script not found at '$COMPARE_SCRIPT' — skipping step 6."
+else
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "    python $COMPARE_SCRIPT --csv $BENCHMARK_CSV"
+  else
+    python "$COMPARE_SCRIPT" --csv "$BENCHMARK_CSV"
+  fi
+fi
