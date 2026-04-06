@@ -51,9 +51,10 @@ class LPGenerator:
         limits = self.config.get("limits", {})
         res    = self.config.get("resources", {})
 
-        maxloss     = limits.get("max_loss",     500)
-        maxcost     = limits.get("max_cost",     900)
-        maxquantity = limits.get("max_quantity",   9)
+        maxloss     = np.sum(well_data["G"])-np.sum(well_data["N"])         
+        maxcost     = round(np.sum(well_data["C"]*.8))
+        maxquantity = round(len(wells["G"])/2)
+
         crews       = res.get("crews",             1)
         gpt_sup     = 1.10   # +10 %
         gpt_inf     = 0.90   # -10 %

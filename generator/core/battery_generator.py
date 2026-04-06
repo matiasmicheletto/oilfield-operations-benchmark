@@ -16,7 +16,7 @@ class BatteryGenerator:
         reps = int(np.ceil(n_wells / n_bats))
         battery_ids = np.repeat(np.arange(1, n_bats + 1), reps)[:n_wells]
         
-        # 2. Compute G_t (Sum + Noise)
+        # 2. Compute G_t (Sum + Noise), Loss, and Cost for each Battery
         battery_targets = []
         battery_loss = []
         battery_cost = []

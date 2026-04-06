@@ -196,7 +196,7 @@ else
 
       echo "  - Solving $lp_name"
       if [[ "$DRY_RUN" == "true" ]]; then
-        echo "    $CPLEX_BIN -c \"read $lp_path\" \"optimize\" \"write $sol_path\" \"quit\""
+        echo "    $CPLEX_BIN -c \"set timelimit 3600\" \"set output writelevel 3\" \"read $lp_path\" \"optimize\" \"write $sol_path\" \"quit\""
       else
         "$CPLEX_BIN" -c \
           "read $lp_path" \
@@ -212,32 +212,32 @@ fi
 # -----------------------------------------------------------------------
 # Step 4: SCIP solver
 # -----------------------------------------------------------------------
-echo "[4/6] Solving ZPL models with SCIP and writing solutions to $SCIP_OUTPUT_DIR"
+#echo "[4/6] Solving ZPL models with SCIP and writing solutions to $SCIP_OUTPUT_DIR"
 
-if ! command -v scip >/dev/null 2>&1; then
-  echo "Warning: 'scip' is not available in PATH — skipping step 5."
-  echo "         Install SCIP or add it to PATH to enable ZPL solving."
-else
-  shopt -s nullglob
-  lp_files_scip=("$INSTANCES_DIR"/*.lp)
-  if (( ${#lp_files_scip[@]} == 0 )); then
-    echo "Warning: no .lp files found in '$INSTANCES_DIR' — run step 2 (zimpl) first."
-  else
-    for lp_path in "${lp_files_scip[@]}"; do
-      lp_name="$(basename "$lp_path")"
-      stem="${lp_name%.lp}"
-      sol_path="$SCIP_OUTPUT_DIR/${stem}.txt"
+#if ! command -v scip >/dev/null 2>&1; then
+#  echo "Warning: 'scip' is not available in PATH — skipping step 5."
+#  echo "         Install SCIP or add it to PATH to enable ZPL solving."
+#else
+#  shopt -s nullglob
+#  lp_files_scip=("$INSTANCES_DIR"/*.lp)
+#  if (( ${#lp_files_scip[@]} == 0 )); then
+#    echo "Warning: no .lp files found in '$INSTANCES_DIR' — run step 2 (zimpl) first."
+#  else
+#    for lp_path in "${lp_files_scip[@]}"; do
+#      lp_name="$(basename "$lp_path")"
+#      stem="${lp_name%.lp}"
+#      sol_path="$SCIP_OUTPUT_DIR/${stem}.txt"
 
-      echo "  - Solving $lp_name -> $(basename "$sol_path")"
-      if [[ "$DRY_RUN" == "true" ]]; then
-        echo "    scip -f $lp_path | tee $sol_path"
-      else
-        scip -f "$lp_path" | tee "$sol_path"
-      fi
-    done
-  fi
-  echo "Done. SCIP solutions written to: $SCIP_OUTPUT_DIR"
-fi
+#      echo "  - Solving $lp_name -> $(basename "$sol_path")"
+#      if [[ "$DRY_RUN" == "true" ]]; then
+#        echo "    scip -f $lp_path | tee $sol_path"
+#      else
+#        scip -f "$lp_path" | tee "$sol_path"
+#      fi
+#    done
+#  fi
+#  echo "Done. SCIP solutions written to: $SCIP_OUTPUT_DIR"
+#fi
 
 # -----------------------------------------------------------------------
 # Step 5: Greedy heuristic solver
