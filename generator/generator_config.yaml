@@ -38,6 +38,9 @@ general:  # ---------------------------------------------------------
                          # Wells are assigned evenly across batteries.
                          # Usually 1–5 for small/medium studies.
 
+  generate_lp: false     # If true, generates an LP file for each instance (step 5).
+                         # Set to false to skip LP generation (e.g. when only ZPL files are needed).
+
   save_plot: true        # Global figure output flag.
                          # If true, figures are saved to output_dir.
 

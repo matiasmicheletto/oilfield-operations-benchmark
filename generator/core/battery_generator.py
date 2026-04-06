@@ -18,14 +18,21 @@ class BatteryGenerator:
         
         # 2. Compute G_t (Sum + Noise)
         battery_targets = []
+        battery_loss = []
+        battery_cost = []
         for b_id in range(1, n_bats + 1):
             mask = (battery_ids == b_id)
-            total_gross = np.sum(well_data["G"][mask])
+            total_gross = np.sum((well_data["G"][mask]/well_data["r"][mask])*100)
+            total_loss = np.sum(((well_data["G"][mask]-well_data["N"][mask])/well_data["r"][mask])*100)
+            total_cost = np.sum(well_data["C"][mask])
             noise = self.rng.normal(0, noise_std)
-            g_t = total_gross * (1 + noise)
+            pct = np.random.uniform(40,95)
+            g_t = total_gross * pct/100
             if rounding == 0:
                 battery_targets.append(int(round(g_t)))
             else:
                 battery_targets.append(round(g_t, rounding))
-            
-        return battery_ids, battery_targets
+            battery_loss.append(total_loss)
+            battery_cost.append(total_cost)
+                                
+        return battery_ids, battery_targets, battery_loss, battery_cost

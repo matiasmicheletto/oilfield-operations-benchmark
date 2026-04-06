@@ -23,11 +23,13 @@ param Bat[P] := read "{param_file}" as "<1n> 8n" skip 1;
 
 param D[V*V] := read "{dist_file}" as "n+" skip 1;
 param Gpt[B] := read "{bat_file}" as "<1n> 2n" skip 1;
+param L[B] := read "{bat_file}" as "<1n> 3n" skip 1; 
+param Cs[B] := read "{bat_file}" as "<1n> 4n" skip 1;
 
 # Bounds from YAML
-param maxloss := {limits.get('max_loss', 500)};
-param maxcost := {limits.get('max_cost', 900)};
-param maxquantity := {limits.get('max_quantity', 9)};
+param maxloss := sum <i> in B with i > 0: L[i];
+param maxcost := 0.8*sum <i> in B with i > 0: Cs[i];
+param maxquantity := card(P)/2;
 param crews := {res.get('crews', 1)};
 
 # Tolerances

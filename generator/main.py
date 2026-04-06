@@ -45,7 +45,7 @@ def run_packager(config):
 
         # 1. Generate Data
         wells = well_gen.generate()
-        bat_ids, bat_targets = bat_gen.generate(wells)
+        bat_ids, bat_targets, bat_loses, bat_costs = bat_gen.generate(wells)
         zpl_gen.generate(zpl_file, p_name, b_name, d_name)
 
         elev, cost_map = spatial_gen.generate_terrain()
@@ -62,9 +62,9 @@ def run_packager(config):
 
         # 3. Export Batteries
         with open(bat_file, "w") as f:
-            f.write("ID\tGpt\n")
+            f.write("ID\tGpt\Loss\Cost\n")
             for i, target in enumerate(bat_targets):
-                f.write(f"{i+1}\t{target}\n")
+                f.write(f"{i+1}\t{bat_targets[i]}\t{bat_loses[i]}\t{bat_costs[i]}\n")
 
         # 4. Export Distance Matrix
         with open(dist_file, "w") as f:
@@ -73,7 +73,8 @@ def run_packager(config):
                 f.write("\t".join(map(lambda x: f"{int(round(x))}", row)) + "\n")
 
         # 5. Generate LP file (used by SCIP/CPLEX without zimpl)
-        lp_gen.generate(lp_file, stem, wells, bat_ids, bat_targets, distance_matrix)
+        if gen_cfg.get("generate_lp", True):
+            lp_gen.generate(lp_file, stem, wells, bat_ids, bat_targets, distance_matrix)
 
         # 6. Plotting (Optional)
         well_gen.plot_distributions(wells, k)
