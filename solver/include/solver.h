@@ -7,26 +7,27 @@
 
 namespace solver {
 
-// Globally-aware greedy heuristic.
+// Regime-adjustment heuristic.
 //
-// Selection phase:
-//   All wells are ranked globally (priority DESC, cost ASC).  They are added
-//   to the selected set one by one as long as all three global hard constraints
-//   are satisfied (max_quantity, max_cost, max_loss) and per-battery production
-//   feasibility is maintained.  After the pass every battery's selected subset
-//   must independently cover its Gpt target within cfg.tolerance; if any
-//   battery fails, solve() returns false.
+// For each battery the wells are sorted according to cfg.sort_method:
+//   priority_cost – ascending priority/cost ratio
+//   loss          – ascending gross-minus-net production loss (at max regime)
+//   route         – nearest-neighbour TSP visit order
 //
-// Routing phase (single crew, multi-crew partitioning deferred to Step 3):
-//   Nearest-neighbour TSP over the selected wells.
+// The sorted list is then scanned and each well's regime is adjusted toward
+// 100 % (when the battery target exceeds current production) or toward 0 %
+// (when the target is below current production), stopping as soon as the
+// target is met.  The last adjusted well receives the exact partial regime
+// required to hit the target precisely.  Wells beyond that point are unchanged.
 //
-// Parameters:
-//   inst  – loaded instance (wells, batteries, distance matrix)
-//   sol   – output solution
-//   cfg   – solver configuration (tolerance, max_quantity, max_cost, max_loss,
-//            crews, max_wells)
+// Global hard constraints (max_quantity, max_cost, max_loss) are enforced
+// well-by-well; a well is skipped if accepting it would violate any limit.
 //
-// Returns true when a feasible solution is produced.
+// The solution is the set of wells whose regimes were changed together with
+// their new regimes.  Objective values (total_cost, total_loss) and the
+// multi-crew route are computed from that set exactly as before.
+//
+// Returns true when every battery's target is met within cfg.tolerance.
 bool solve(const Instance& inst, Solution& sol,
            const loader::SolverConfig& cfg);
 

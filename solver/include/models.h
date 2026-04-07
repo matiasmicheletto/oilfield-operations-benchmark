@@ -15,8 +15,11 @@
 
 struct Well {
     int    id;              // unique 1-indexed well ID
-    double gross_prod;      // G – total gross production capacity
-    double net_prod;        // N – net production
+    double gross_prod;      // G – max gross production capacity at 100 % regime
+                            //     (file column G is production at current_regime;
+                            //      the loader normalises it: gross_prod = G * 100 / r)
+    double net_prod;        // N – max net production at 100 % regime
+                            //     (normalised from file column N the same way as gross_prod)
     double current_regime;  // r – current production regime (0-100)
     double risk;            // R – risk factor   (0-100)
     double priority;        // P – priority level (0-100)

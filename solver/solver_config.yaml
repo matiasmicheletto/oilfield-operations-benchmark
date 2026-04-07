@@ -38,9 +38,15 @@ solver:
                     # (default: unconstrained — leave empty to use the C++ default DBL_MAX)
 
   max_loss:         # Maximum allowed net-loss  sum (G[i]-N[i])*newregime[i]/100.
-                    # During selection a conservative worst-case estimate is used
-                    # (newregime = 100 for every selected well).
+                    # During selection the actual new regime is used for the estimate.
                     # (default: unconstrained — leave empty to use the C++ default DBL_MAX)
+
+  sort_method: priority_cost
+                    # Criterion used to sort wells within each battery before
+                    # adjusting regimes to meet the production target.
+                    # priority_cost – ascending priority/cost ratio  (default)
+                    # loss          – ascending gross-minus-net production loss
+                    # route         – nearest-neighbour TSP visit order
 
 # ---------------------------------------------------------------------------
 # Output

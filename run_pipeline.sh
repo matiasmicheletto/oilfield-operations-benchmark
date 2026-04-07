@@ -121,7 +121,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
   echo "DRY_RUN is enabled. Commands will be printed but not executed."
 fi
 
-echo "[1/6] Generating instances with main.py"
+echo "[1/5] Generating instances with main.py"
 gen_cmd=(
   python "$GENERATOR_DIR/main.py" "$GENERATOR_DIR/$CONFIG_FILE"
   --set "general.num_instances=${NUM_INSTANCES}"
@@ -134,7 +134,7 @@ if [[ "$DRY_RUN" != "true" ]]; then
   "${gen_cmd[@]}"
 fi
 
-echo "[2/6] Converting ZPL models to LP in $INSTANCES_DIR"
+echo "[2/5] Converting ZPL models to LP in $INSTANCES_DIR"
 # LP files are generated directly by main.py (step 1) via lp_generator.py,
 # so zimpl is only needed if you want to re-convert ZPL files independently.
 if ! command -v zimpl >/dev/null 2>&1; then
@@ -167,7 +167,7 @@ else
   fi
 fi
 
-echo "[3/6] Solving LP models with CPLEX and writing solutions to $CPLEX_OUTPUT_DIR"
+echo "[3/5] Solving LP models with CPLEX and writing solutions to $CPLEX_OUTPUT_DIR"
 # Resolve CPLEX executable. In DRY_RUN mode this is optional.
 if [[ -n "$CPLEX_BIN" ]]; then
   if [[ ! -x "$CPLEX_BIN" ]]; then
@@ -240,13 +240,13 @@ fi
 #fi
 
 # -----------------------------------------------------------------------
-# Step 5: Greedy heuristic solver
+# Step 5: Greedy heuristic solver (all sort methods)
 # -----------------------------------------------------------------------
-echo "[5/6] Running greedy heuristic solver on all instances"
+echo "[4/5] Running greedy heuristic solver on all instances (all sort methods)"
 
 SOLVER_BIN="$SOLVER_DIR/bin/solve"
 SOLVER_CONFIG="$SOLVER_DIR/solver_config.yaml"
-
+SORT_METHODS=(priority_cost loss route)
 
 # Check if makefile exists before checking for binary, to give a more helpful error message
 if [[ ! -f "$SOLVER_DIR/Makefile" ]]; then
@@ -293,18 +293,21 @@ else
       continue
     fi
 
-    sol_path="$GREEDY_OUTPUT_DIR/greedy_${stem}.txt"
-    echo "  - Solving instance '$stem' -> $(basename "$sol_path")"
-    if [[ "$DRY_RUN" == "true" ]]; then
-      echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path -o $sol_path"
-    else
-      "$SOLVER_BIN" \
-        -c "$SOLVER_CONFIG" \
-        -p "$param_path" \
-        -b "$bat_path" \
-        -d "$dist_path" \
-        -o "$sol_path"
-    fi
+    for method in "${SORT_METHODS[@]}"; do
+      sol_path="$GREEDY_OUTPUT_DIR/greedy_${stem}_${method}.txt"
+      echo "  - Solving instance '$stem' method='$method' -> $(basename "$sol_path")"
+      if [[ "$DRY_RUN" == "true" ]]; then
+        echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --set solver.sort_method=$method -o $sol_path"
+      else
+        "$SOLVER_BIN" \
+          -c "$SOLVER_CONFIG" \
+          -p "$param_path" \
+          -b "$bat_path" \
+          -d "$dist_path" \
+          --set "solver.sort_method=$method" \
+          -o "$sol_path"
+      fi
+    done
   done
 fi
 
@@ -316,9 +319,9 @@ echo "Done. Greedy solutions written to: $GREEDY_OUTPUT_DIR"
 COMPARE_SCRIPT="$OUTPUT_DIR/compare_solutions.py"
 BENCHMARK_CSV="$OUTPUT_DIR/benchmark.csv"
 
-echo "[6/6] Comparing solutions and writing results to $BENCHMARK_CSV"
+echo "[5/5] Comparing solutions and writing results to $BENCHMARK_CSV"
 if [[ ! -f "$COMPARE_SCRIPT" ]]; then
-  echo "Warning: compare script not found at '$COMPARE_SCRIPT' — skipping step 6."
+  echo "Warning: compare script not found at '$COMPARE_SCRIPT' — skipping step 5."
 else
   if [[ "$DRY_RUN" == "true" ]]; then
     echo "    python $COMPARE_SCRIPT --csv $BENCHMARK_CSV"

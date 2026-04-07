@@ -41,6 +41,8 @@ void load_yaml_config(SolverConfig& cfg, const std::string& path) {
             cfg.max_cost     = s["max_cost"].as<double>();
         if (s["max_loss"]     && s["max_loss"].IsScalar()     && s["max_loss"].Scalar()     != "")
             cfg.max_loss     = s["max_loss"].as<double>();
+        if (s["sort_method"]  && s["sort_method"].IsScalar())
+            cfg.sort_method  = s["sort_method"].as<std::string>();
     }
 
     if (root["output"]) {
@@ -77,6 +79,7 @@ void apply_override(SolverConfig& cfg, const std::string& kv) {
         else if (key == "solver.max_quantity") cfg.max_quantity = std::stoi(val);
         else if (key == "solver.max_cost")     cfg.max_cost     = std::stod(val);
         else if (key == "solver.max_loss")     cfg.max_loss     = std::stod(val);
+        else if (key == "solver.sort_method")  cfg.sort_method  = val;
         else if (key == "output.file")         cfg.output_file  = val;
         else if (key == "output.debug")        cfg.debug        = (val == "true" || val == "1");
         else
@@ -114,6 +117,13 @@ Instance load(const std::string& param_file,
             Well w;
             ss >> w.id >> w.gross_prod >> w.net_prod >> w.current_regime
                >> w.risk >> w.priority >> w.cost >> w.battery_id;
+            // Column G (gross_prod) and N (net_prod) store the production at the
+            // current regime r.  Convert both to their maximum values at 100 %
+            // regime so the rest of the solver can treat gross_prod as capacity.
+            if (w.current_regime > 1e-9) {
+                w.gross_prod = w.gross_prod * 100.0 / w.current_regime;
+                w.net_prod   = w.net_prod   * 100.0 / w.current_regime;
+            }
             inst.wells.push_back(w);
         }
     }

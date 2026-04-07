@@ -22,12 +22,12 @@ class BatteryGenerator:
         battery_cost = []
         for b_id in range(1, n_bats + 1):
             mask = (battery_ids == b_id)
+            current_gross = np.sum(well_data["G"][mask])
             total_gross = np.sum((well_data["G"][mask]/well_data["r"][mask])*100)
             total_loss = np.sum(((well_data["G"][mask]-well_data["N"][mask])/well_data["r"][mask])*100)
             total_cost = np.sum(well_data["C"][mask])
-            noise = self.rng.normal(0, noise_std)
-            pct = np.random.uniform(40,95)
-            g_t = total_gross * pct/100
+            pct = self.rng.uniform(40, 90)
+            g_t = current_gross * pct/100
             if rounding == 0:
                 battery_targets.append(int(round(g_t)))
             else:

@@ -26,6 +26,7 @@ struct SolverConfig {
     int    max_quantity = std::numeric_limits<int>::max();     // global well-count cap
     double max_cost     = std::numeric_limits<double>::max();  // budget cap (sum C[i])
     double max_loss     = std::numeric_limits<double>::max();  // net-loss cap (sum (G-N)*regime/100)
+    std::string sort_method = "priority_cost"; // per-battery well sort: priority_cost | loss | route
     // [output]
     std::string output_file;
     bool        debug = false;
