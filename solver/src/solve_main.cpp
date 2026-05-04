@@ -24,6 +24,7 @@ static struct option long_options[] = {
     {"param",     required_argument, 0, 'p'},
     {"battery",   required_argument, 0, 'b'},
     {"dist",      required_argument, 0, 'd'},
+    {"format",    required_argument, 0, 'f'},
     {0,           0,                 0,  0 }
 };
 
@@ -36,10 +37,11 @@ int main(int argc, char **argv) {
     std::optional<std::string> cli_battery_file;
     std::optional<std::string> cli_dist_file;
     std::optional<std::string> cli_output_file;
+    std::optional<PRINT_FORMAT> cli_print_format;
     bool                       cli_debug = false;
 
     int opt, option_index = 0;
-    while ((opt = getopt_long(argc, argv, "vhDc:s:o:p:b:d:",
+    while ((opt = getopt_long(argc, argv, "vhDc:s:o:p:b:d:f:",
                               long_options, &option_index)) != -1) {
         switch (opt) {
             case 'h': utils::printHelp(MANUAL); return 0;
@@ -51,6 +53,17 @@ int main(int argc, char **argv) {
             case 'p': cli_param_file   = optarg; break;
             case 'b': cli_battery_file = optarg; break;
             case 'd': cli_dist_file    = optarg; break;
+            case 'f': {
+                std::string fmt = optarg;
+                if (fmt == "routes")     cli_print_format = PRINT_FORMAT::ROUTES;
+                else if (fmt == "txt")   cli_print_format = PRINT_FORMAT::TXT;
+                else {
+                    std::cerr << "[main] Unknown format '" << fmt
+                              << "'. Valid values: txt, routes\n";
+                    return 1;
+                }
+                break;
+            }
             case '?': return 1;
         }
     }
@@ -74,11 +87,12 @@ int main(int argc, char **argv) {
         loader::apply_override(cfg, kv);
 
     // Explicit CLI flags always win over the config file
-    if (cli_param_file)   cfg.param_file   = *cli_param_file;
-    if (cli_battery_file) cfg.battery_file = *cli_battery_file;
-    if (cli_dist_file)    cfg.dist_file    = *cli_dist_file;
-    if (cli_output_file)  cfg.output_file  = *cli_output_file;
-    if (cli_debug)        cfg.debug        = true;
+    if (cli_param_file)    cfg.param_file    = *cli_param_file;
+    if (cli_battery_file)  cfg.battery_file  = *cli_battery_file;
+    if (cli_dist_file)     cfg.dist_file     = *cli_dist_file;
+    if (cli_output_file)   cfg.output_file   = *cli_output_file;
+    if (cli_print_format)  cfg.print_format  = *cli_print_format;
+    if (cli_debug)         cfg.debug         = true;
 
     if (cfg.debug)
         utils::dbg.rdbuf(std::cout.rdbuf());
@@ -102,17 +116,17 @@ int main(int argc, char **argv) {
     try {
         inst = loader::load(cfg.param_file, cfg.battery_file, cfg.dist_file);
     } catch (const std::exception& e) {
-        std::cerr << utils::red << "[main] Load error: " << e.what()
+        utils::dbg << utils::red << "[main] Load error: " << e.what()
                   << "\n" << utils::reset;
         return 1;
     }
 
-    std::cout << "[main] Loaded " << inst.wells.size() << " wells, "
+    utils::dbg << "[main] Loaded " << inst.wells.size() << " wells, "
               << inst.batteries.size() << " batteries, "
               << inst.dist_matrix.size() << "x"
               << (inst.dist_matrix.empty() ? 0 : inst.dist_matrix[0].size())
               << " distance matrix.\n";
-    std::cout << "[main] max_wells=" << cfg.max_wells
+    utils::dbg << "[main] max_wells=" << cfg.max_wells
               << "  tolerance=" << cfg.tolerance
               << "  crews=" << cfg.crews
               << "  max_quantity=" << cfg.max_quantity
@@ -133,15 +147,15 @@ int main(int argc, char **argv) {
     // Report
     // ------------------------------------------------------------------
 
-    sol.print(std::cout, inst, cfg.crews);
+    sol.print(std::cout, inst, cfg.crews, cfg.print_format);
 
     if (!cfg.output_file.empty()) {
         std::ofstream out(cfg.output_file);
         if (out) {
-            sol.print(out, inst, cfg.crews);
-            std::cout << "[main] Solution written to " << cfg.output_file << "\n";
+            sol.print(out, inst, cfg.crews, cfg.print_format);
+            utils::dbg << "[main] Solution written to " << cfg.output_file << "\n";
         } else {
-            std::cerr << utils::red
+            utils::dbg << utils::red
                       << "[main] Warning: cannot open output file: "
                       << cfg.output_file << "\n" << utils::reset;
         }

@@ -227,6 +227,35 @@ class SpatialGenerator:
         return D
 
     # ------------------------------------------------------------------
+    # Spatial Data Export (for route overlay)
+    # ------------------------------------------------------------------
+    def save_spatial_data(self, elevation, cost_map, well_positions, ops_center,
+                          all_paths, instance_id, output_dir):
+        """Save terrain and layout data as a compressed NPZ for post-hoc route overlay.
+
+        Arrays saved:
+          elevation      – (grid_size, grid_size) float terrain heights
+          cost_map       – (grid_size, grid_size) float traversal cost surface
+          well_positions – (n_wells, 2) int pixel coordinates; row i ↔ well ID i+1
+          ops_center     – (2,) int pixel coordinate of the operations-centre depot
+          road_mask      – (grid_size, grid_size) bool existing road network footprint
+        """
+        road_mask = np.zeros(cost_map.shape, dtype=bool)
+        for path in all_paths:
+            for r, c in path:
+                road_mask[r, c] = True
+
+        fname = f"spatial_data_{instance_id}.npz"
+        np.savez_compressed(
+            output_dir / fname,
+            elevation=elevation,
+            cost_map=cost_map,
+            well_positions=np.array(well_positions),
+            ops_center=np.array(ops_center),
+            road_mask=road_mask,
+        )
+
+    # ------------------------------------------------------------------
     # Plot (same format as original prompt)
     # ------------------------------------------------------------------
     def plot_network(self, elevation, wells, paths, ops_center, instance_id, output_dir):

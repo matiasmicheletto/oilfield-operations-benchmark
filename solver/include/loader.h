@@ -28,8 +28,9 @@ struct SolverConfig {
     double max_loss     = 2000;//std::numeric_limits<double>::max();  // net-loss cap (sum (G-N)*regime/100)
     std::string sort_method = "priority_cost"; // per-battery well sort: priority_cost | loss | route
     // [output]
-    std::string output_file;
-    bool        debug = false;
+    std::string  output_file;
+    PRINT_FORMAT print_format = PRINT_FORMAT::TXT;
+    bool         debug = false;
 };
 
 // Populate cfg from a YAML file.  Only keys present in the file are applied;

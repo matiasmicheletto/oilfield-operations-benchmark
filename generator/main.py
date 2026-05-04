@@ -97,6 +97,9 @@ def run_packager(config):
             # 9. Plot spatial network
             spatial_gen.plot_network(elev, well_positions, paths, ops_center, f"{k}_{s}", out_dir)
 
+            # 10. Save spatial data for route overlay
+            spatial_gen.save_spatial_data(elev, cost_map, well_positions, ops_center, paths, f"{k}_{s}", out_dir)
+
             print(f"Packaged instance {k}, scenario {s}: "
                   f"{param_file.name}, {bat_file.name}, {dist_file.name}, {z_name}, {l_name} generated.")
 

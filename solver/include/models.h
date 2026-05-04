@@ -46,6 +46,8 @@ struct Instance {
     std::vector<std::vector<double>>  dist_matrix;
 };
 
+enum class PRINT_FORMAT { TXT, ROUTES };
+
 struct Solution {
     std::vector<int>    selected_ids;   // Well IDs chosen for intervention
     double              total_distance;
@@ -67,7 +69,23 @@ struct Solution {
     // Kept for backward compatibility; prefer crew_routes for new code.
     std::vector<int> route;
 
-    void print(std::ostream& os, const Instance& inst, int n_crews) const {
+    void print(std::ostream& os, const Instance& inst, int n_crews,
+               PRINT_FORMAT fmt = PRINT_FORMAT::TXT) const {
+        if (fmt == PRINT_FORMAT::ROUTES) {
+            // One line per crew: crew_id well_id well_id ...
+            // Depot (0) is omitted so the caller gets plain well sequences.
+            const int nc = static_cast<int>(crew_routes.size());
+            for (int c = 0; c < nc; ++c) {
+                const auto& cr = crew_routes[c];
+                os << (c + 1);
+                for (int node : cr)
+                    if (node != 0) os << " " << node;
+                os << "\n";
+            }
+            return;
+        }
+
+        // PRINT_FORMAT::TXT (default)
         std::unordered_map<int, const Well*> well_by_id;
         for (const Well& w : inst.wells) well_by_id[w.id] = &w;
 

@@ -83,7 +83,7 @@ bool solve(const Instance& inst, Solution& sol,
         const bool need_decrease = current_prod > eff_target * (1.0 + tolerance);
 
         if (!need_increase && !need_decrease) {
-            std::cout << "[solver] Battery " << bat.id
+            utils::dbg << "[solver] Battery " << bat.id
                       << ": target already met (current=" << current_prod
                       << ", Gpt=" << bat.target_gross << ").\n";
             continue;
@@ -93,69 +93,54 @@ bool solve(const Instance& inst, Solution& sol,
         // Sort well indices according to cfg.sort_method
         // --------------------------------------------------------------
         std::vector<size_t> order(bat_all.begin(), bat_all.end());
- 		double gap = need_increase ? (eff_target - current_prod)
-                                   : (current_prod - eff_target);
-        std::cout<<"Target: "<<eff_target<<" Current: " <<current_prod<<" Gap: "<<gap<<std::endl;    
+ 		double gap = need_increase ? (eff_target - current_prod) : (current_prod - eff_target);
      
-        	if (cfg.sort_method == "priority_cost") {
-                std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
-                	const Well& wa = inst.wells[a];
-                	const Well& wb = inst.wells[b];
-           		//     const double ra = (wa.cost > 1e-9) ? wa.priority / wa.cost
-             	//                                      : std::numeric_limits<double>::max();
-               	// const double rb = (wb.cost > 1e-9) ? wb.priority / wb.cost
-                 //                                  : std::numeric_limits<double>::max();
+        if (cfg.sort_method == "priority_cost") {
+            std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+                const Well& wa = inst.wells[a];
+                const Well& wb = inst.wells[b];
 
-                    const double ra = (wa.current_regime > 1e-9) ? wa.current_regime
-                                                   : std::numeric_limits<double>::max();
-                 	const double rb = (wb.current_regime > 1e-9) ?  wb.current_regime
-                                                   : std::numeric_limits<double>::max();
-                   if (need_increase){	
-            //       std::cout<<"Crece "<<std::endl;    
-                			return ra < rb;  // ascending ratio
-                       }
-            		else{
-              //     std::cout<<"decrece "<<std::endl;                        	
-                    return rb < ra;
-                    }
-                    });
-               
-        	} else if (cfg.sort_method == "loss") {
-            	std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
-                if (need_increase){
-             //                      std::cout<<"Crece "<<std::endl;    
-                	return (inst.wells[a].gross_prod - inst.wells[a].net_prod) <
-                    	   (inst.wells[b].gross_prod - inst.wells[b].net_prod);  // ascending loss
+                const double ra = (wa.current_regime > 1e-9) ? wa.current_regime
+                                                : std::numeric_limits<double>::max();
+                const double rb = (wb.current_regime > 1e-9) ?  wb.current_regime
+                                                : std::numeric_limits<double>::max();
+                if (need_increase){	
+                    return ra < rb;  // ascending ratio
                 }
                 else{
-                	return (inst.wells[a].gross_prod - inst.wells[a].net_prod) >
-                    	   (inst.wells[b].gross_prod - inst.wells[b].net_prod);  // ascending loss
-
+                    return rb < ra;
+                }
+                });
+            
+        } else if (cfg.sort_method == "loss") {
+            std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+                if (need_increase){
+                    return (inst.wells[a].gross_prod - inst.wells[a].net_prod) <
+                            (inst.wells[b].gross_prod - inst.wells[b].net_prod);  // ascending loss
+                }
+                else{
+                    return (inst.wells[a].gross_prod - inst.wells[a].net_prod) >
+                            (inst.wells[b].gross_prod - inst.wells[b].net_prod);  // ascending loss
                 }
             });
-        	} else if (cfg.sort_method == "route") {
-            	std::vector<int> ids;
-            	ids.reserve(bat_all.size());
-            	for (size_t i : bat_all)
-                	ids.push_back(inst.wells[i].id);
-            	auto [route, dummy] = utils::nearest_neighbor_route(ids, inst.dist_matrix);
-            	// route = [0, w1, ..., wk, 0] — extract inner sequence
-            	order.clear();
-            	for (int k = 1; k + 1 < static_cast<int>(route.size()); ++k)
-                	order.push_back(well_idx_by_id.at(route[k]));
-        	} else {
-            	std::cerr << utils::red
-                      << "[solver] Unknown sort_method '" << cfg.sort_method
-                      << "', using natural order.\n" << utils::reset;
-        	}	
-        
+        } else if (cfg.sort_method == "route") {
+            std::vector<int> ids;
+            ids.reserve(bat_all.size());
+            for (size_t i : bat_all)
+                ids.push_back(inst.wells[i].id);
+            auto [route, dummy] = utils::nearest_neighbor_route(ids, inst.dist_matrix);
+            order.clear();
+            for (int k = 1; k + 1 < static_cast<int>(route.size()); ++k)
+                order.push_back(well_idx_by_id.at(route[k]));
+        } else {
+            std::cerr << utils::red
+                << "[solver] Unknown sort_method '" << cfg.sort_method
+                << "', using natural order.\n" << utils::reset;
+        }
 
         // --------------------------------------------------------------
         // Scan sorted wells and adjust regimes until gap is closed
         // --------------------------------------------------------------
-      //  double gap = need_increase ? (eff_target - current_prod)
-        //                           : (current_prod - eff_target);
-        std::cout<<"Target: "<<eff_target<<" Current: " <<current_prod<<" Gap: "<<gap<<std::endl;
         std::vector<int> selected_in_bat;
 
         for (size_t i : order) {
@@ -189,7 +174,6 @@ bool solve(const Instance& inst, Solution& sol,
                 }
            
             }
-			std::cout<<"New regimen: "<<new_regime<<" Well:" <<w.id<<std::endl;
             // Check global hard constraints before accepting
             const double loss_w = std::max(0.0, w.gross_prod - w.net_prod);// * new_regime / 100.0;
             if (sel_count + 1  > max_qty)              continue;
@@ -197,9 +181,7 @@ bool solve(const Instance& inst, Solution& sol,
             if (sel_loss_acc + loss_w > max_loss)       continue;
 
             // Accept adjustment
-            std::cout<<"Acepta cambios "<< new_regime <<" Well:" <<w.id<<" gap: "<<gap<<" gap red: "<<gap_reduction<<std::endl;
             gap -= gap_reduction;
-        	std::cout<<" gap: "<<gap<<" gap red: "<<gap_reduction<<std::endl;
             sol.new_regimes[w.id] = new_regime;
             selected_in_bat.push_back(w.id);
             selected_set.insert(w.id);
@@ -223,14 +205,14 @@ bool solve(const Instance& inst, Solution& sol,
         const bool bat_ok = (achieved >= eff_target * (1.0 - tolerance)) &&
                             (achieved <= eff_target * (1.0 + tolerance));
 
-        std::cout << "[solver] Battery " << bat.id
+        utils::dbg << "[solver] Battery " << bat.id
                   << ": adjusted=" << selected_in_bat.size()
                   << "  achieved=" << achieved
                   << "  Gpt=" << bat.target_gross
                   << (bat_ok ? "" : "  [INFEASIBLE]") << "\n";
 
         if (!bat_ok) {
-            std::cout << utils::red
+            utils::dbg << utils::red
                       << "[solver] Battery " << bat.id
                       << ": target not met within tolerance (tol=" << (tolerance * 100.0) << "%).\n"
                       << utils::reset;
@@ -238,7 +220,7 @@ bool solve(const Instance& inst, Solution& sol,
         }
     }
 
-    std::cout << "[solver] Selection summary:"
+    utils::dbg << "[solver] Selection summary:"
               << "  wells=" << sel_count
               << "  cost=" << sel_cost
               << "  loss=" << sel_loss_acc << "\n";
@@ -251,7 +233,6 @@ bool solve(const Instance& inst, Solution& sol,
     for (int id : sol.selected_ids) {
         const Well& w  = inst.wells[well_idx_by_id.at(id)];
         sol.total_cost += w.cost;
-        const double nr = sol.new_regimes[id];
         sol.total_loss += std::max(0.0, w.gross_prod - w.net_prod);// * nr / 100.0;
     }
 
