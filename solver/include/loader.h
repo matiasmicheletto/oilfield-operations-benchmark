@@ -20,12 +20,12 @@ struct SolverConfig {
     std::string battery_file;
     std::string dist_file;
     // [solver]
-    int    max_wells    = 20;    // cyclic-window size K (legacy; now controls sort window)
-    double tolerance    = 0.05;  // ±5 % deviation from Gpt
+    int    max_wells    = 10;    // cyclic-window size K (legacy; now controls sort window)
+    double tolerance    = 0.1;  // ±5 % deviation from Gpt
     int    crews        = 2;
-    int    max_quantity = std::numeric_limits<int>::max();     // global well-count cap
-    double max_cost     = std::numeric_limits<double>::max();  // budget cap (sum C[i])
-    double max_loss     = std::numeric_limits<double>::max();  // net-loss cap (sum (G-N)*regime/100)
+    int    max_quantity = 10;//std::numeric_limits<int>::max();     // global well-count cap
+    double max_cost     = 200;//std::numeric_limits<double>::max();  // budget cap (sum C[i])
+    double max_loss     = 2000;//std::numeric_limits<double>::max();  // net-loss cap (sum (G-N)*regime/100)
     std::string sort_method = "priority_cost"; // per-battery well sort: priority_cost | loss | route
     // [output]
     std::string output_file;

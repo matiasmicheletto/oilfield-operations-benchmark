@@ -2,8 +2,10 @@
 #ifndef MODELS_H
 #define MODELS_H
 
-#include <vector>
+#include <ostream>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 // ---------------------------------------------------------------------------
 // Core data structures – mirrors the columns produced by WellGenerator
@@ -30,6 +32,8 @@ struct Well {
 struct Battery {
     int    id;
     double target_gross;    // Gpt – target gross production for this battery
+	double max_loss;
+	double max_cost;
 };
 
 struct Instance {
@@ -62,6 +66,63 @@ struct Solution {
     // Legacy single-route view (union of all crew routes, excluding depot repetitions).
     // Kept for backward compatibility; prefer crew_routes for new code.
     std::vector<int> route;
+
+    void print(std::ostream& os, const Instance& inst, int n_crews) const {
+        std::unordered_map<int, const Well*> well_by_id;
+        for (const Well& w : inst.wells) well_by_id[w.id] = &w;
+
+        auto route_dist = [&](const std::vector<int>& r) {
+            double d = 0.0;
+            for (int k = 0; k + 1 < static_cast<int>(r.size()); ++k)
+                d += inst.dist_matrix[r[k]][r[k + 1]];
+            return d;
+        };
+
+        auto route_str = [](const std::vector<int>& r) {
+            std::string s;
+            for (int k = 0; k < static_cast<int>(r.size()); ++k) {
+                if (k) s += " → ";
+                s += std::to_string(r[k]);
+            }
+            return s;
+        };
+
+        os << "\n=== Solution ===\n";
+
+        os << "Selected wells (" << selected_ids.size() << "):";
+        for (int id : selected_ids) os << " " << id;
+        os << "\n";
+
+        os << "Per-well regimes:\n";
+        for (int id : selected_ids) {
+            const Well* w = well_by_id.count(id) ? well_by_id.at(id) : nullptr;
+            if (!w) continue;
+            os << "  Well " << id
+               << ": current_regime=" << w->current_regime
+               << " -> new_regime=";
+            if (id < static_cast<int>(new_regimes.size()))
+                os << new_regimes[id];
+            else
+                os << "N/A";
+            os << "\n";
+        }
+
+        const int nc = static_cast<int>(crew_routes.size());
+        os << "Per-crew routes (" << n_crews << " crews):\n";
+        for (int c = 0; c < nc; ++c) {
+            const auto& cr = crew_routes[c];
+            if (cr.empty()) {
+                os << "  Crew " << (c + 1) << ": (no wells assigned)\n";
+            } else {
+                os << "  Crew " << (c + 1) << ": " << route_str(cr)
+                   << "   (distance: " << route_dist(cr) << ")\n";
+            }
+        }
+
+        os << "Total distance: " << total_distance << "\n";
+        os << "Total cost: "     << total_cost     << "\n";
+        os << "Total loss (actual): " << total_loss << "\n";
+    }
 };
 
 #endif // MODELS_H

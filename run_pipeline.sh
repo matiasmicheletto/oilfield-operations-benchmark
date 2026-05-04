@@ -7,12 +7,13 @@
 
 # Options:
 #   -n, --instances N    Number of instances to generate (default: 2)
+#   -s, --scenarios N    Number of scenarios per instance (default: 1)
 #   -w, --wells N        Number of wells per instance    (default: 10)
 #   -b, --batteries N    Number of batteries per instance (default: 2)
 #   -d, --dry-run        Print commands without executing them
 #   -h, --help           Show this help message
 
-# Example: ./run_pipeline.sh -n 5 -w 15 -b 3
+# Example: ./run_pipeline.sh -n 5 -s 3 -w 15 -b 3
 # -------------------------------
 
 
@@ -23,6 +24,7 @@ set -euo pipefail
 # -------------------------------
 CONFIG_FILE="generator_config.yaml"
 NUM_INSTANCES=2
+NUM_SCENARIOS=1
 N_WELLS=10
 N_BATTERIES=2
 DRY_RUN=false # Set to true to print commands without executing them
@@ -36,6 +38,7 @@ usage() {
   echo ""
   echo "Options:"
   echo "  -n, --instances N    Number of instances to generate (default: $NUM_INSTANCES)"
+  echo "  -s, --scenarios N    Number of scenarios per instance (default: $NUM_SCENARIOS)"
   echo "  -w, --wells N        Number of wells per instance    (default: $N_WELLS)"
   echo "  -b, --batteries N    Number of batteries per instance (default: $N_BATTERIES)"
   echo "  -d, --dry-run        Print commands without executing them"
@@ -45,10 +48,11 @@ usage() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -n|--instances)  NUM_INSTANCES="$2"; shift 2 ;;
-    -w|--wells)      N_WELLS="$2";       shift 2 ;;
+    -n|--instances)  NUM_INSTANCES="$2";  shift 2 ;;
+    -s|--scenarios)  NUM_SCENARIOS="$2"; shift 2 ;;
+    -w|--wells)      N_WELLS="$2";        shift 2 ;;
     -b|--batteries)  N_BATTERIES="$2";   shift 2 ;;
-    -d|--dry-run)    DRY_RUN=true;       shift   ;;
+    -d|--dry-run)    DRY_RUN=true;        shift   ;;
     -h|--help)       usage ;;
     *) echo "Unknown option: $1" >&2; usage ;;
   esac
@@ -125,6 +129,7 @@ echo "[1/5] Generating instances with main.py"
 gen_cmd=(
   python "$GENERATOR_DIR/main.py" "$GENERATOR_DIR/$CONFIG_FILE"
   --set "general.num_instances=${NUM_INSTANCES}"
+  --set "general.num_scenarios=${NUM_SCENARIOS}"
   --set "general.n_wells=${N_WELLS}"
   --set "general.n_batteries=${N_BATTERIES}"
   --set "general.output_dir=${INSTANCES_DIR}"
@@ -200,7 +205,10 @@ else
       else
         "$CPLEX_BIN" -c \
           "read $lp_path" \
-          "optimize" \
+		      "set timelimit 3600" \
+	        "set mip tolerances mipgap 0.005" \
+          "set output writelevel 3" \
+		      "optimize" \
           "write $sol_path" \
           "quit"
       fi
@@ -271,42 +279,52 @@ else
 fi  
 
 
+shopt -s nullglob
 param_files=("$INSTANCES_DIR"/parameters_*.dat)
 if (( ${#param_files[@]} == 0 )); then
   echo "Warning: no parameters_*.dat files found in '$INSTANCES_DIR'. Skipping step 4."
 else
   for param_path in "${param_files[@]}"; do
     param_name="$(basename "$param_path")"
-    # Derive stem: parameters_<stem>.dat -> <stem>
-    stem="${param_name#parameters_}"
-    stem="${stem%.dat}"
+    # Derive instance stem: parameters_<stem>.dat -> <stem>
+    param_stem="${param_name#parameters_}"
+    param_stem="${param_stem%.dat}"
 
-    bat_path="$INSTANCES_DIR/batteries_${stem}.dat"
-    dist_path="$INSTANCES_DIR/distance_${stem}.dat"
-
-    if [[ ! -f "$bat_path" ]]; then
-      echo "  Warning: battery file not found for instance '$stem', skipping."
-      continue
-    fi
-    if [[ ! -f "$dist_path" ]]; then
-      echo "  Warning: distance file not found for instance '$stem', skipping."
+    # Find all scenario battery files for this instance
+    shopt -s nullglob
+    bat_files=("$INSTANCES_DIR"/batteries_${param_stem}_*.dat)
+    if (( ${#bat_files[@]} == 0 )); then
+      echo "  Warning: no battery files found for instance '$param_stem', skipping."
       continue
     fi
 
-    for method in "${SORT_METHODS[@]}"; do
-      sol_path="$GREEDY_OUTPUT_DIR/greedy_${stem}_${method}.txt"
-      echo "  - Solving instance '$stem' method='$method' -> $(basename "$sol_path")"
-      if [[ "$DRY_RUN" == "true" ]]; then
-        echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --set solver.sort_method=$method -o $sol_path"
-      else
-        "$SOLVER_BIN" \
-          -c "$SOLVER_CONFIG" \
-          -p "$param_path" \
-          -b "$bat_path" \
-          -d "$dist_path" \
-          --set "solver.sort_method=$method" \
-          -o "$sol_path"
+    for bat_path in "${bat_files[@]}"; do
+      bat_name="$(basename "$bat_path")"
+      # Derive scenario stem: batteries_<scenario_stem>.dat -> <scenario_stem>
+      scenario_stem="${bat_name#batteries_}"
+      scenario_stem="${scenario_stem%.dat}"
+      dist_path="$INSTANCES_DIR/distance_${scenario_stem}.dat"
+
+      if [[ ! -f "$dist_path" ]]; then
+        echo "  Warning: distance file not found for scenario '$scenario_stem', skipping."
+        continue
       fi
+
+      for method in "${SORT_METHODS[@]}"; do
+        sol_path="$GREEDY_OUTPUT_DIR/greedy_${scenario_stem}_${method}.txt"
+        echo "  - Solving instance '$param_stem' scenario '$scenario_stem' method='$method' -> $(basename "$sol_path")"
+        if [[ "$DRY_RUN" == "true" ]]; then
+          echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --set solver.sort_method=$method -o $sol_path"
+        else
+          "$SOLVER_BIN" \
+            -c "$SOLVER_CONFIG" \
+            -p "$param_path" \
+            -b "$bat_path" \
+            -d "$dist_path" \
+            --set "solver.sort_method=$method" \
+            -o "$sol_path"
+        fi
+      done
     done
   done
 fi

@@ -3,7 +3,12 @@ general:  # ---------------------------------------------------------
           # ---------------------------------------------------------
 
   num_instances: 5       # Number of independent instances to generate.
-                         # This includes well parameters, battery parameters and distance matrix
+                         # Each instance has its own set of well parameters.
+
+  num_scenarios: 1       # Number of random scenarios per instance.
+                         # Each scenario shares the same well parameters but has
+                         # independently drawn battery properties and distance matrix.
+                         # Files: batteries_<w>_<b>_<k>_<s>.dat, distance_<w>_<b>_<k>_<s>.dat
   
   seed: 42               # Random seed for reproducibility.
                          # Use a fixed value for research experiments.

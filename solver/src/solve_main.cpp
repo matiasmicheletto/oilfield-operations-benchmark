@@ -4,7 +4,6 @@
 #include <fstream>
 #include <optional>
 #include <string>
-#include <unordered_map>
 #include <vector>
 #include <getopt.h>
 
@@ -134,72 +133,12 @@ int main(int argc, char **argv) {
     // Report
     // ------------------------------------------------------------------
 
-    // Build a well-id → Well* lookup for the report
-    std::unordered_map<int, const Well*> well_by_id;
-    for (const Well& w : inst.wells) well_by_id[w.id] = &w;
-
-    // Helper to compute per-crew distance from a route vector
-    auto route_dist = [&](const std::vector<int>& r) {
-        double d = 0.0;
-        for (int k = 0; k + 1 < static_cast<int>(r.size()); ++k)
-            d += inst.dist_matrix[r[k]][r[k + 1]];
-        return d;
-    };
-
-    // Helper to build a printable route string "0 → w1 → w2 → 0"
-    auto route_str = [](const std::vector<int>& r) {
-        std::string s;
-        for (int k = 0; k < static_cast<int>(r.size()); ++k) {
-            if (k) s += " → ";
-            s += std::to_string(r[k]);
-        }
-        return s;
-    };
-
-    auto print_solution = [&](std::ostream& os) {
-        os << "\n=== Solution ===\n";
-
-        os << "Selected wells (" << sol.selected_ids.size() << "):";
-        for (int id : sol.selected_ids) os << " " << id;
-        os << "\n";
-
-        os << "Per-well regimes:\n";
-        for (int id : sol.selected_ids) {
-            const Well* w = well_by_id.count(id) ? well_by_id.at(id) : nullptr;
-            if (!w) continue;
-            os << "  Well " << id
-               << ": current_regime=" << w->current_regime
-               << " -> new_regime=";
-            if (id < static_cast<int>(sol.new_regimes.size()))
-                os << sol.new_regimes[id];
-            else
-                os << "N/A";
-            os << "\n";
-        }
-
-        const int n_crews = static_cast<int>(sol.crew_routes.size());
-        os << "Per-crew routes (" << cfg.crews << " crews):\n";
-        for (int c = 0; c < n_crews; ++c) {
-            const auto& cr = sol.crew_routes[c];
-            if (cr.empty()) {
-                os << "  Crew " << (c + 1) << ": (no wells assigned)\n";
-            } else {
-                os << "  Crew " << (c + 1) << ": " << route_str(cr)
-                   << "   (distance: " << route_dist(cr) << ")\n";
-            }
-        }
-
-        os << "Total distance: " << sol.total_distance << "\n";
-        os << "Total cost: "     << sol.total_cost     << "\n";
-        os << "Total loss (actual): " << sol.total_loss << "\n";
-    };
-
-    print_solution(std::cout);
+    sol.print(std::cout, inst, cfg.crews);
 
     if (!cfg.output_file.empty()) {
         std::ofstream out(cfg.output_file);
         if (out) {
-            print_solution(out);
+            sol.print(out, inst, cfg.crews);
             std::cout << "[main] Solution written to " << cfg.output_file << "\n";
         } else {
             std::cerr << utils::red

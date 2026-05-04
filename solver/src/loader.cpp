@@ -121,8 +121,8 @@ Instance load(const std::string& param_file,
             // current regime r.  Convert both to their maximum values at 100 %
             // regime so the rest of the solver can treat gross_prod as capacity.
             if (w.current_regime > 1e-9) {
-                w.gross_prod = w.gross_prod * 100.0 / w.current_regime;
-                w.net_prod   = w.net_prod   * 100.0 / w.current_regime;
+                w.gross_prod = w.gross_prod;// * 100.0 / w.current_regime;
+                w.net_prod   = w.net_prod;//   * 100.0 / w.current_regime;
             }
             inst.wells.push_back(w);
         }
@@ -143,7 +143,7 @@ Instance load(const std::string& param_file,
             if (line.empty()) continue;
             std::istringstream ss(line);
             Battery b;
-            ss >> b.id >> b.target_gross;
+            ss >> b.id >> b.target_gross >> b.max_loss >> b.max_cost;
             inst.batteries.push_back(b);
         }
     }
