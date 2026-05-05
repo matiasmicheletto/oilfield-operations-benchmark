@@ -1,4 +1,6 @@
 """
+LP Generator
+------------
 lp_generator.py — Generate CPLEX LP-format files directly from instance data.
 
 This avoids the need for Zimpl (which may not be installed) while producing

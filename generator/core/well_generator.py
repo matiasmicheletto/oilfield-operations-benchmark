@@ -1,3 +1,15 @@
+"""
+Well Generator
+----------------
+well_generator.py — Generate well-level data based on YAML configuration. This includes gross production, net production, regime, risk, priority, and cost for each well.
+
+The generator supports both independent sampling from specified distributions and correlation logic (e.g., risk correlated with production). It also includes plotting functions to visualize the generated data.
+Inputs:
+- config: dict loaded from YAML, containing parameters for distributions, scaling, rounding, and plotting options.
+Outputs:
+- A dict with keys 'G', 'N', 'r', 'R', 'P', 'C', each an array of length n_wells, representing the generated parameters for each well.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path

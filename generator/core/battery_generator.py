@@ -1,3 +1,17 @@
+"""
+Battery Generator
+-----------------
+This module generates battery-level data based on well-level data. It assigns wells to batteries and computes the target gross production (G_t), loss, and cost for each battery.
+
+Inputs:
+- well_data: dict with keys 'G', 'N', 'r', 'C', each an array of length n_wells
+Outputs:
+- battery_ids: array of length n_wells, where each entry is the 1-based battery ID assigned to the corresponding well
+- battery_targets: array of length n_batteries, where each entry is the target gross production (G_t) for that battery
+- battery_loss: array of length n_batteries, where each entry is the total loss for that battery
+- battery_cost: array of length n_batteries, where each entry is the total cost for that
+"""
+
 import numpy as np
 
 

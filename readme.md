@@ -12,7 +12,8 @@ A modular Python library for generating synthetic oilfield datasets tailored for
 ### 2. Spatial & Road Network (`SpatialGenerator`)
 * **Clustered Placement:** Simulates realistic field geography.
 * **Graph-Based Roads:** Builds primary well-to-operations-center roads and secondary well-to-well connectors with corridor reuse.
-* **Shortest-Path Matrices:** Computes full routing distances between the Operations Center and all wells.
+* **Shortest-Path Matrices:** Computes full routing distances between the Operations Center and all wells using `MCP_Geometric` on the terrain cost surface.
+* **Terrain Visualization:** Saves spatial maps with elevation and road overlays for each instance.
 
 ### 3. Battery Logic (`BatteryGenerator`)
 * **Smart Assignment:** Evenly distributes wells to production batteries.
@@ -58,6 +59,7 @@ oilfield-operations-benchmark/
 │       └── utils.cpp
 ├── output/
 │   ├── compare_solutions.py    # Solution comparison entry point
+│   ├── plot_routes.py          # Overlay solver routes on the spatial map
 │   ├── compare/
 │   │   ├── parsers.py          # Parsers for CPLEX, SCIP, and greedy output
 │   │   ├── matching.py         # Stem-based file matching across solver dirs
@@ -111,44 +113,7 @@ bash run_pipeline.sh -w 10 -n 2 --dry-run
 2. Convert ZPL → LP via `zimpl` (skipped if `zimpl` not in PATH — LP files already written in step 1)
 3. Solve LP models with CPLEX (skipped if `cplex` not in PATH)
 4. Solve LP models with SCIP (skipped if `scip` not in PATH)
-5. Solve instances with greedy heuristic
-
-#### Generator Only
-
-To generate instances without running solvers:
-
-```bash
-cd generator
-python main.py [config.yaml]
-```
-
-You can override parameters from the CLI using dot notation:
-
-```bash
-python main.py generator_config.yaml \
-  --set general.num_instances=5 \
-  --set general.n_wells=50 \
-  --set spatial.num_peaks=10
-```
-
-#### Compare Solutions
-
-After running the pipeline, compare solver outputs:
-
-```bash
-cd output
-python compare_solutions.py [--cplex DIR] [--greedy DIR] [--scip DIR] [--csv FILE]
-```
-
-All directory arguments default to `output/cplex/`, `output/greedy/`, and `output/scip/`. CPLEX and SCIP directories are optional — the table layout adapts automatically to whichever solvers were run.
-
-```bash
-# Greedy only
-python compare_solutions.py
-
-# Greedy + SCIP with CSV export
-python compare_solutions.py --scip scip/ --csv results.csv
-```
+5. Solve instances with solver methods
 
 
 ## ⚙️ Configuration Guide
@@ -364,9 +329,7 @@ spatial:
 - `connector_reuse_penalty` discourages connector paths from fully collapsing into primary roads.
 - The Operations Center is placed randomly near the geometric centre of the grid (within ±`grid_size/8` of centre) to simulate a central depot.
 
----
 
----
 ## 📂 Output Structure
 
 ### Instance files (`generator/instances/`)
@@ -380,7 +343,8 @@ instances/
 ├── model_[W]_[B]_[id].lp            # LP model (direct SCIP/CPLEX input)
 ├── well_bar_[id].png
 ├── well_hist_[id].png
-└── spatial_network_[id].png
+├── spatial_network_[id].png         # Road network + terrain map
+└── spatial_data_[id].npz            # Terrain arrays for route overlay
 ```
 
 ### Solver output (`output/`)
@@ -431,6 +395,28 @@ A space-separated matrix where the entry at row `i` and column `j` represents th
 - Values are shortest-path distances in meters (rounded to integers)
 - Matrix is symmetric
 
+### Spatial Data File
+
+A compressed NumPy archive (`spatial_data_[k]_[s].npz`) produced alongside the spatial network PNG for each scenario. It is the input required by `output/plot_routes.py` to overlay solver routes on the terrain map.
+
+Load it with:
+```python
+import numpy as np
+data = np.load("spatial_data_1_1.npz")
+```
+
+| Array | Shape | dtype | Description |
+|-------|-------|-------|-------------|
+| `elevation` | `(G, G)` | `float64` | Raw terrain elevation at each grid pixel, in the same arbitrary units as `elevation_amplitude` |
+| `cost_map` | `(G, G)` | `float64` | Traversal cost surface derived from terrain slope; used as edge weights for `MCP_Geometric`. Values ≥ 1.0 everywhere |
+| `well_positions` | `(n_wells, 2)` | `int64` | Pixel coordinates `[row, col]` for each well; row index `i` corresponds to well ID `i+1` |
+| `ops_center` | `(2,)` | `int64` | Pixel coordinate `[row, col]` of the operations-centre depot (node 0 in the distance matrix) |
+| `road_mask` | `(G, G)` | `bool` | Boolean mask of the generated road network footprint; `True` pixels belong to at least one road segment |
+
+`G` is `spatial.grid_size` from the configuration (default 300).
+
+Pixel axes follow NumPy/image convention: axis 0 is the row (vertical, origin at top), axis 1 is the column (horizontal). When plotting with `matplotlib.imshow(..., origin='lower')`, pass `col` as the x-coordinate and `row` as the y-coordinate.
+
 ### Battery File
 A tab-separated file with two columns:
 | Column | Description |
@@ -438,34 +424,6 @@ A tab-separated file with two columns:
 | `ID` | Unique battery identifier (1, 2, ...) |
 | `Gpt` | Total gross-production target for the battery (sum of assigned wells + noise)
 
-
----
-
-## 📊 Best Practices
-
-### For Research Reproducibility
-- Always use a fixed `seed` value
-- Document your configuration file in version control
-- Include generated instances in supplementary materials
-
-### For MILP Models
-- Set `rounding` to `0` for all variables
-- Use `scaling` to avoid small coefficients (e.g., 0.001)
-- Scale risk/priority to 0–100 range
-
-### For Realistic Scenarios
-- Use `lognormal` for production (realistic heavy-tailed distribution)
-- Set correlation `rho` between 0.5–0.9 for risk/priority
-- Use 2–5 spatial clusters (`spatial.n_clusters`)
-- Tune connector density with `spatial.max_per_well` and `spatial.max_dist_fraction`
-
-### For Benchmarking
-- Generate 20–100 instances per configuration
-- Vary `n_wells` systematically (e.g., 20, 50, 100, 200, 500)
-- Test both clustered and dispersed spatial configurations
-- Include both high and low correlation scenarios
-
----
 
 ### Greedy Solver
 
@@ -498,6 +456,88 @@ conda install -c conda-forge scip=9.2
 ```
 
 ---
+
+#### Visualize Routes
+
+Overlay solver-computed crew routes on the terrain map of the corresponding instance.
+
+**Step 1 — solve with routes format:**
+```bash
+solver/bin/solve \
+    -p generator/instances/parameters_10_2_1_1.dat \
+    -b generator/instances/batteries_10_2_1_1.dat \
+    -d generator/instances/distance_10_2_1_1.dat \
+    -f routes -o /tmp/routes_1_1.txt
+```
+
+The `-f routes` flag produces one line per crew:
+```
+1 6 7 2
+2 5 4 1
+```
+Each line starts with the crew number followed by the well IDs it visits (depot omitted). Use `-o` to write it to a file.
+
+**Step 2 — generate the overlay PNG:**
+```bash
+cd output
+python plot_routes.py \
+    --spatial ../generator/instances/spatial_data_1_1.npz \
+    --routes  /tmp/routes_1_1.txt \
+    --output  ../generator/instances/route_overlay_1_1.png
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `--spatial` | yes | `spatial_data_[k]_[s].npz` produced by the generator |
+| `--routes` | yes | Routes file written by the solver with `-f routes` |
+| `--output` | no | Output PNG path (defaults to `route_overlay_[k]_[s].png` next to the NPZ) |
+
+The script re-traces each crew's path through the terrain cost surface using `MCP_Geometric`, so routes exactly follow the least-cost geodesic used to build the distance matrix. Each crew is drawn in a distinct colour; visited wells are annotated with their IDs; the existing road network is shown as a faint overlay for spatial context.
+
+#### Compare Solutions
+
+After running the pipeline, compare solver outputs:
+
+```bash
+cd output
+python compare_solutions.py [--cplex DIR] [--greedy DIR] [--scip DIR] [--csv FILE]
+```
+
+All directory arguments default to `output/cplex/`, `output/greedy/`, and `output/scip/`. CPLEX and SCIP directories are optional — the table layout adapts automatically to whichever solvers were run.
+
+```bash
+# Greedy only
+python compare_solutions.py
+
+# Greedy + SCIP with CSV export
+python compare_solutions.py --scip scip/ --csv results.csv
+```
+
+
+## 📊 Best Practices
+
+### For Research Reproducibility
+- Always use a fixed `seed` value
+- Document your configuration file in version control
+- Include generated instances in supplementary materials
+
+### For MILP Models
+- Set `rounding` to `0` for all variables
+- Use `scaling` to avoid small coefficients (e.g., 0.001)
+- Scale risk/priority to 0–100 range
+
+### For Realistic Scenarios
+- Use `lognormal` for production (realistic heavy-tailed distribution)
+- Set correlation `rho` between 0.5–0.9 for risk/priority
+- Use 2–5 spatial clusters (`spatial.n_clusters`)
+- Tune connector density with `spatial.max_per_well` and `spatial.max_dist_fraction`
+
+### For Benchmarking
+- Generate 20–100 instances per configuration
+- Vary `n_wells` systematically (e.g., 20, 50, 100, 200, 500)
+- Test both clustered and dispersed spatial configurations
+- Include both high and low correlation scenarios
+
 
 ## 📝 License
 

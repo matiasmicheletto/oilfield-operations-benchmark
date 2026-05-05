@@ -29,6 +29,7 @@ N_WELLS=10
 N_BATTERIES=2
 DRY_RUN=false # Set to true to print commands without executing them
 CPLEX_BIN="" # Optional absolute path to CPLEX executable if not in PATH
+CPLEX_TIME_LIMIT=1200 # Time limit for CPLEX in seconds (default: 20 minutes)
 
 # -------------------------------
 # Parse command-line arguments
@@ -205,7 +206,7 @@ else
       else
         "$CPLEX_BIN" -c \
           "read $lp_path" \
-		      "set timelimit 3600" \
+		      "set timelimit $CPLEX_TIME_LIMIT" \
 	        "set mip tolerances mipgap 0.005" \
           "set output writelevel 3" \
 		      "optimize" \

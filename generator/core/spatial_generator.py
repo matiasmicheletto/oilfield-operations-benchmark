@@ -1,3 +1,16 @@
+"""
+Spatial Generator
+-----------------
+spatial_generator.py - Generates spatial data for the oilfield layout, including terrain elevation, traversal cost maps, well coordinates, and the road network connecting wells to the operations center. The generated data is saved in a compressed NPZ format for use in route overlay visualization and solver input.
+
+Key functionalities:
+- Procedural terrain generation with configurable morphology (peaks, smoothness).
+- Spatially clustered well placement.
+- Road network growth using least-cost paths with corridor reuse to encourage realistic shared routes.
+- Distance matrix computation based on terrain traversal costs.
+- Visualization of the spatial layout with elevation and roads.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.graph import MCP_Geometric

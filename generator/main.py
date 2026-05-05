@@ -1,3 +1,21 @@
+"""
+Main entry point for the Oilfield Operations Benchmark instance generator.
+Usage:
+    python generator/main.py --config config.yaml
+
+Overrides:
+    python generator/main.py --set general.n_wells=20 general.n_batteries=5
+
+Output:
+    For each instance, generates:
+    - param_<id>.dat: tabular well parameters (G, N, r, R, P, C, battery_id).
+    - bat_<id>.dat: tabular battery parameters (Gpt, Loss, Cost).
+    - model_<id>.lp: LP-format file for use with SCIP/CPLEX without zimpl.
+    - spatial_<id>.png: visual plot of the terrain and well locations.
+    - dist_<id>.dat: tabular distance matrix between wells and operations center.
+    - spatial_data_<id>.npz: numpy arrays for elevation, cost map, well positions, etc.
+"""
+
 import sys
 import os
 import numpy as np
@@ -30,9 +48,6 @@ def run_packager(config):
     zpl_gen = ZPLGenerator(config)
     lp_gen  = LPGenerator(config)
 
-    # Battery-to-well assignment is deterministic (same for every instance/scenario)
-    bat_ids = bat_gen.get_battery_ids()
-
     for k in range(1, num_instances + 1):
 
         # ---- Per-instance stem and file names ----
@@ -42,6 +57,9 @@ def run_packager(config):
 
         # 1. Generate well data (shared across all scenarios of this instance)
         wells = well_gen.generate()
+
+        # bat_ids is deterministic; re-derive it for this instance's wells
+        bat_ids, _, _, _ = bat_gen.generate(wells)
 
         # 2. Export Parameters (written once per instance)
         with open(param_file, "w") as f:
@@ -62,13 +80,15 @@ def run_packager(config):
             d_name = f"{gen_cfg['dist_name_prefix']}_{scenario_stem}.dat"
             z_name = f"{gen_cfg['zpl_name_prefix']}_{scenario_stem}.zpl"
             l_name = f"model_{scenario_stem}.lp"
+            s_name = f"spatial_{scenario_stem}.png"
             bat_file  = out_dir / b_name
             dist_file = out_dir / d_name
             zpl_file  = out_dir / z_name
             lp_file   = out_dir / l_name
+            spat_file  = out_dir / s_name
 
             # 4. Generate scenario-specific data
-            bat_targets, bat_loses, bat_costs = bat_gen.generate_properties(wells, bat_ids)
+            _, bat_targets, bat_loses, bat_costs = bat_gen.generate(wells)
 
             elev, cost_map = spatial_gen.generate_terrain()
             well_positions = spatial_gen.generate_well_positions(n_wells=gen_cfg["n_wells"])
@@ -101,7 +121,7 @@ def run_packager(config):
             spatial_gen.save_spatial_data(elev, cost_map, well_positions, ops_center, paths, f"{k}_{s}", out_dir)
 
             print(f"Packaged instance {k}, scenario {s}: "
-                  f"{param_file.name}, {bat_file.name}, {dist_file.name}, {z_name}, {l_name} generated.")
+                  f"{param_file.name}, {bat_file.name}, {dist_file.name}, {z_name}, {l_name}, {s_name} generated.")
 
 
 if __name__ == "__main__":

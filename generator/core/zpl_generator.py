@@ -1,3 +1,17 @@
+"""
+ZPL Generator
+-------------
+zpl_generator.py — Generate Zimpl .zpl files directly from instance data.
+This allows users to solve the generated instances with any ZPL-compatible solver
+(e.g., SCIP, CPLEX) without needing to install Zimpl itself.
+The generated ZPL file includes:
+- Set definitions for wells (P), batteries (B), and routing nodes (V).
+- Parameters for well attributes (G, N, R, C), battery targets and costs, and distance matrix.
+- Variables for well selection (z), new regimes, routing (x), and MTZ ordering (y).
+- Objective function to minimize distance, with constraints for loss, cost, quantity, production limits, and routing logic.
+The generator reads the necessary data from the parameter files generated in the main generation loop and formats it into a complete ZPL model.
+"""
+
 class ZPLGenerator:
     def __init__(self, config):
         self.config = config
