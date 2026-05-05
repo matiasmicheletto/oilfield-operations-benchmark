@@ -95,6 +95,11 @@ OPTIONS
       Write the solution to FILE in plain-text format.
       If omitted the solution is printed to stdout only.
 
+   -f FORMAT, --format FORMAT
+      Output format for the solution output to be printed in CLI. Supported formats are:
+         txt: Plain text (default).
+         routes: matrices where rows are crews and columns are well numbers.
+
    -D, --dbg
       Print verbose diagnostic messages from the loader and solver.
 

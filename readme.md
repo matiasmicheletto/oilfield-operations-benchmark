@@ -343,8 +343,8 @@ instances/
 ├── model_[W]_[B]_[id].lp            # LP model (direct SCIP/CPLEX input)
 ├── well_bar_[id].png
 ├── well_hist_[id].png
-├── spatial_network_[id].png         # Road network + terrain map
-└── spatial_data_[id].npz            # Terrain arrays for route overlay
+├── spatial_network_[W]_[B]_[id].png     # Road network + terrain map
+└── spatial_data_[W]_[B]_[id].npz        # Terrain arrays for route overlay
 ```
 
 ### Solver output (`output/`)
@@ -397,12 +397,12 @@ A space-separated matrix where the entry at row `i` and column `j` represents th
 
 ### Spatial Data File
 
-A compressed NumPy archive (`spatial_data_[k]_[s].npz`) produced alongside the spatial network PNG for each scenario. It is the input required by `output/plot_routes.py` to overlay solver routes on the terrain map.
+A compressed NumPy archive (`spatial_data_[W]_[B]_[k]_[s].npz`) produced alongside the spatial network PNG for each scenario. It is the input required by `output/plot_routes.py` to overlay solver routes on the terrain map.
 
 Load it with:
 ```python
 import numpy as np
-data = np.load("spatial_data_1_1.npz")
+data = np.load("spatial_data_10_2_1_1.npz")
 ```
 
 | Array | Shape | dtype | Description |
@@ -481,14 +481,14 @@ Each line starts with the crew number followed by the well IDs it visits (depot 
 ```bash
 cd output
 python plot_routes.py \
-    --spatial ../generator/instances/spatial_data_1_1.npz \
+    --spatial ../generator/instances/spatial_data_10_2_1_1.npz \
     --routes  /tmp/routes_1_1.txt \
     --output  ../generator/instances/route_overlay_1_1.png
 ```
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `--spatial` | yes | `spatial_data_[k]_[s].npz` produced by the generator |
+| `--spatial` | yes | `spatial_data_[W]_[B]_[k]_[s].npz` produced by the generator |
 | `--routes` | yes | Routes file written by the solver with `-f routes` |
 | `--output` | no | Output PNG path (defaults to `route_overlay_[k]_[s].png` next to the NPZ) |
 

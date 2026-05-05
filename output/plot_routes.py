@@ -9,9 +9,9 @@ Workflow:
 
 Usage:
     python plot_routes.py \\
-        --spatial  path/to/spatial_data_1_1.npz \\
-        --routes   path/to/routes_1_1.txt \\
-        [--output  path/to/route_overlay_1_1.png]
+        --spatial  path/to/spatial_data.npz \\
+        --routes   path/to/routes.txt \\
+        [--output  path/to/route_overlay.png]
 
 Routes file format (solver -f routes):
     Each line:  <crew_id> [well_id ...]

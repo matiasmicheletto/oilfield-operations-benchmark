@@ -23,7 +23,7 @@ set -euo pipefail
 # User-configurable parameters (defaults; overridable via CLI flags)
 # -------------------------------
 CONFIG_FILE="generator_config.yaml"
-NUM_INSTANCES=2
+NUM_INSTANCES=5
 NUM_SCENARIOS=1
 N_WELLS=10
 N_BATTERIES=2
@@ -313,6 +313,7 @@ else
 
       for method in "${SORT_METHODS[@]}"; do
         sol_path="$GREEDY_OUTPUT_DIR/greedy_${scenario_stem}_${method}.txt"
+        routes_path="$GREEDY_OUTPUT_DIR/routes_${scenario_stem}_${method}.txt"
         echo "  - Solving instance '$param_stem' scenario '$scenario_stem' method='$method' -> $(basename "$sol_path")"
         if [[ "$DRY_RUN" == "true" ]]; then
           echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --set solver.sort_method=$method -o $sol_path"
@@ -323,7 +324,8 @@ else
             -b "$bat_path" \
             -d "$dist_path" \
             --set "solver.sort_method=$method" \
-            -o "$sol_path"
+            -f routes \
+            -o "$sol_path" > "$routes_path"
         fi
       done
     done
@@ -338,7 +340,7 @@ echo "Done. Greedy solutions written to: $GREEDY_OUTPUT_DIR"
 COMPARE_SCRIPT="$OUTPUT_DIR/compare_solutions.py"
 BENCHMARK_CSV="$OUTPUT_DIR/benchmark.csv"
 
-echo "[5/5] Comparing solutions and writing results to $BENCHMARK_CSV"
+echo "[5/6] Comparing solutions and writing results to $BENCHMARK_CSV"
 if [[ ! -f "$COMPARE_SCRIPT" ]]; then
   echo "Warning: compare script not found at '$COMPARE_SCRIPT' — skipping step 5."
 else
@@ -347,4 +349,49 @@ else
   else
     python "$COMPARE_SCRIPT" --csv "$BENCHMARK_CSV"
   fi
+fi
+
+# -----------------------------------------------------------------------
+# Step 7: Plot routes overlaying spatial data
+# -----------------------------------------------------------------------
+PLOT_SCRIPT="$OUTPUT_DIR/plot_routes.py"
+
+echo "[6/6] Plotting crew routes over spatial maps"
+if [[ ! -f "$PLOT_SCRIPT" ]]; then
+  echo "Warning: plot script not found at '$PLOT_SCRIPT' — skipping step 6."
+else
+  shopt -s nullglob
+  routes_files=("$GREEDY_OUTPUT_DIR"/routes_*.txt)
+  if (( ${#routes_files[@]} == 0 )); then
+    echo "Warning: no routes_*.txt files found in '$GREEDY_OUTPUT_DIR' — skipping step 6."
+  else
+    for routes_path in "${routes_files[@]}"; do
+      routes_name="$(basename "$routes_path")"
+      # routes_<scenario_stem>_<method>.txt
+      # Strip leading "routes_" and trailing "_<method>.txt" to recover scenario_stem
+      tmp="${routes_name#routes_}"
+      method_suffix="${tmp##*_}"
+      method_suffix="${method_suffix%.txt}"
+      scenario_stem="${tmp%_${method_suffix}.txt}"
+
+      spatial_path="$INSTANCES_DIR/spatial_data_${scenario_stem}.npz"
+      overlay_path="$INSTANCES_DIR/route_overlay_${scenario_stem}_${method_suffix}.png"
+
+      if [[ ! -f "$spatial_path" ]]; then
+        echo "  Warning: spatial data not found for '$scenario_stem' — skipping."
+        continue
+      fi
+
+      echo "  - Plotting routes for '$scenario_stem' method='$method_suffix' -> $(basename "$overlay_path")"
+      if [[ "$DRY_RUN" == "true" ]]; then
+        echo "    python $PLOT_SCRIPT --spatial $spatial_path --routes $routes_path --output $overlay_path"
+      else
+        python "$PLOT_SCRIPT" \
+          --spatial "$spatial_path" \
+          --routes  "$routes_path" \
+          --output  "$overlay_path"
+      fi
+    done
+  fi
+  echo "Done. Route overlay images written to: $INSTANCES_DIR"
 fi

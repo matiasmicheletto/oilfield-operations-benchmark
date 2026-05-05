@@ -80,12 +80,11 @@ def run_packager(config):
             d_name = f"{gen_cfg['dist_name_prefix']}_{scenario_stem}.dat"
             z_name = f"{gen_cfg['zpl_name_prefix']}_{scenario_stem}.zpl"
             l_name = f"model_{scenario_stem}.lp"
-            s_name = f"spatial_{scenario_stem}.png"
+            s_name = f"spatial_{scenario_stem}.npz"
             bat_file  = out_dir / b_name
             dist_file = out_dir / d_name
             zpl_file  = out_dir / z_name
             lp_file   = out_dir / l_name
-            spat_file  = out_dir / s_name
 
             # 4. Generate scenario-specific data
             _, bat_targets, bat_loses, bat_costs = bat_gen.generate(wells)
@@ -115,10 +114,10 @@ def run_packager(config):
                 lp_gen.generate(lp_file, scenario_stem, wells, bat_ids, bat_targets, distance_matrix)
 
             # 9. Plot spatial network
-            spatial_gen.plot_network(elev, well_positions, paths, ops_center, f"{k}_{s}", out_dir)
+            spatial_gen.plot_network(elev, well_positions, paths, ops_center, scenario_stem, out_dir)
 
             # 10. Save spatial data for route overlay
-            spatial_gen.save_spatial_data(elev, cost_map, well_positions, ops_center, paths, f"{k}_{s}", out_dir)
+            spatial_gen.save_spatial_data(elev, cost_map, well_positions, ops_center, paths, scenario_stem, out_dir)
 
             print(f"Packaged instance {k}, scenario {s}: "
                   f"{param_file.name}, {bat_file.name}, {dist_file.name}, {z_name}, {l_name}, {s_name} generated.")
