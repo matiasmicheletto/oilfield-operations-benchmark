@@ -5,11 +5,12 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <memory>
 #include <getopt.h>
 
 #include "../include/utils.h"
 #include "../include/loader.h"
-#include "../include/solver.h"
+#include "../include/solver_base.h"
 
 // ---------------------------------------------------------------------------
 // CLI options
@@ -19,6 +20,7 @@ static struct option long_options[] = {
     {"version",   no_argument,       0, 'v'},
     {"dbg",       no_argument,       0, 'D'},
     {"config",    required_argument, 0, 'c'},
+    {"method",    required_argument, 0, 'm'},
     {"set",       required_argument, 0, 's'},
     {"output",    required_argument, 0, 'o'},
     {"param",     required_argument, 0, 'p'},
@@ -32,6 +34,7 @@ int main(int argc, char **argv) {
 
     // Explicit CLI overrides (std::optional = "not provided by user")
     std::string                cfg_filename;
+    std::string                solver_method = "greedy";  // default method
     std::vector<std::string>   cfg_overrides;
     std::optional<std::string> cli_param_file;
     std::optional<std::string> cli_battery_file;
@@ -41,13 +44,14 @@ int main(int argc, char **argv) {
     bool                       cli_debug = false;
 
     int opt, option_index = 0;
-    while ((opt = getopt_long(argc, argv, "vhDc:s:o:p:b:d:f",
+    while ((opt = getopt_long(argc, argv, "vhDc:m:s:o:p:b:d:f",
                               long_options, &option_index)) != -1) {
         switch (opt) {
             case 'h': utils::printHelp(MANUAL); return 0;
             case 'v': std::cout << "Oilfield Greedy Solver v0.1.0\n"; return 0;
             case 'D': cli_debug = true; break;
             case 'c': cfg_filename = optarg; break;
+            case 'm': solver_method = optarg; break;
             case 's': cfg_overrides.emplace_back(optarg); break;
             case 'o': cli_output_file = optarg; break;
             case 'p': cli_param_file   = optarg; break;
@@ -125,8 +129,25 @@ int main(int argc, char **argv) {
     // ------------------------------------------------------------------
     // Solve
     // ------------------------------------------------------------------
+    // Create solver instance based on requested method
+    std::unique_ptr<solver::SolverBase> solver;
+    try {
+        solver = solver::createSolver(solver_method);
+        if (!solver) {
+            std::cerr << utils::red
+                      << "[main] Error: unknown solver method '" << solver_method
+                      << "'\n" << utils::reset;
+            return 1;
+        }
+        utils::dbg << "[main] Using solver method: " << solver->name() << "\n";
+    } catch (const std::exception& e) {
+        std::cerr << utils::red << "[main] Solver creation error: " << e.what()
+                  << "\n" << utils::reset;
+        return 1;
+    }
+
     Solution sol;
-    if (!solver::solve(inst, sol, cfg)) {
+    if (!solver->solve(inst, sol, cfg)) {
         std::cerr << utils::red << "[main] No feasible solution found.\n"
                   << utils::reset;
         return 2;

@@ -78,6 +78,11 @@ OPTIONS
       Keys present in the file override built-in defaults; missing keys
       keep their default values.  See CONFIGURATION FILE below.
 
+   -m METHOD, --method METHOD
+      Select the optimization algorithm. Available methods:
+        greedy     Cyclic-window heuristic (default)
+      Default: greedy
+
    -s KEY=VALUE, --set KEY=VALUE
       Override a single configuration parameter after loading the config
       file.  Can be repeated to override multiple parameters.
