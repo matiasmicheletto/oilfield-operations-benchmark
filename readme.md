@@ -461,21 +461,23 @@ conda install -c conda-forge scip=9.2
 
 Overlay solver-computed crew routes on the terrain map of the corresponding instance.
 
-**Step 1 — solve with routes format:**
+**Step 1 — solve and print routes matrix to stdout:**
 ```bash
 solver/bin/solve \
     -p generator/instances/parameters_10_2_1_1.dat \
     -b generator/instances/batteries_10_2_1_1.dat \
     -d generator/instances/distance_10_2_1_1.dat \
-    -f routes -o /tmp/routes_1_1.txt
+  -f -o /tmp/solution_1_1.txt > /tmp/routes_1_1.txt
 ```
 
-The `-f routes` flag produces one line per crew:
+The `-f` flag produces one line per crew on stdout:
 ```
 1 6 7 2
 2 5 4 1
 ```
-Each line starts with the crew number followed by the well IDs it visits (depot omitted). Use `-o` to write it to a file.
+Each line starts with the crew number followed by the well IDs it visits (depot omitted).
+The file passed with `-o` is always the full human-readable plain-text solution.
+Use shell redirection (`>`) to save the route matrix.
 
 **Step 2 — generate the overlay PNG:**
 ```bash
@@ -489,7 +491,7 @@ python plot_routes.py \
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `--spatial` | yes | `spatial_data_[W]_[B]_[k]_[s].npz` produced by the generator |
-| `--routes` | yes | Routes file written by the solver with `-f routes` |
+| `--routes` | yes | Routes matrix captured from solver stdout when using `-f` |
 | `--output` | no | Output PNG path (defaults to `route_overlay_[k]_[s].png` next to the NPZ) |
 
 The script re-traces each crew's path through the terrain cost surface using `MCP_Geometric`, so routes exactly follow the least-cost geodesic used to build the distance matrix. Each crew is drawn in a distinct colour; visited wells are annotated with their IDs; the existing road network is shown as a faint overlay for spatial context.

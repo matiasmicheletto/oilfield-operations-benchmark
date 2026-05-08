@@ -316,7 +316,7 @@ else
         routes_path="$GREEDY_OUTPUT_DIR/routes_${scenario_stem}_${method}.txt"
         echo "  - Solving instance '$param_stem' scenario '$scenario_stem' method='$method' -> $(basename "$sol_path")"
         if [[ "$DRY_RUN" == "true" ]]; then
-          echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --set solver.sort_method=$method -o $sol_path"
+          echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --set solver.sort_method=$method -f -o $sol_path > $routes_path"
         else
           "$SOLVER_BIN" \
             -c "$SOLVER_CONFIG" \
@@ -324,7 +324,7 @@ else
             -b "$bat_path" \
             -d "$dist_path" \
             --set "solver.sort_method=$method" \
-            -f routes \
+            -f \
             -o "$sol_path" > "$routes_path"
         fi
       done
@@ -375,7 +375,7 @@ else
       scenario_stem="${tmp%_${method_suffix}.txt}"
 
       spatial_path="$INSTANCES_DIR/spatial_data_${scenario_stem}.npz"
-      overlay_path="$INSTANCES_DIR/route_overlay_${scenario_stem}_${method_suffix}.png"
+      overlay_path="$GREEDY_OUTPUT_DIR/route_overlay_${scenario_stem}_${method_suffix}.png"
 
       if [[ ! -f "$spatial_path" ]]; then
         echo "  Warning: spatial data not found for '$scenario_stem' — skipping."
@@ -393,5 +393,5 @@ else
       fi
     done
   fi
-  echo "Done. Route overlay images written to: $INSTANCES_DIR"
+  echo "Done. Route overlay images written to: $GREEDY_OUTPUT_DIR"
 fi

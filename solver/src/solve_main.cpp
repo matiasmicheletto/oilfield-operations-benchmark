@@ -24,7 +24,7 @@ static struct option long_options[] = {
     {"param",     required_argument, 0, 'p'},
     {"battery",   required_argument, 0, 'b'},
     {"dist",      required_argument, 0, 'd'},
-    {"format",    required_argument, 0, 'f'},
+    {"format",    no_argument,       0, 'f'},
     {0,           0,                 0,  0 }
 };
 
@@ -37,11 +37,11 @@ int main(int argc, char **argv) {
     std::optional<std::string> cli_battery_file;
     std::optional<std::string> cli_dist_file;
     std::optional<std::string> cli_output_file;
-    std::optional<PRINT_FORMAT> cli_print_format;
+    bool                       cli_print_routes = false;
     bool                       cli_debug = false;
 
     int opt, option_index = 0;
-    while ((opt = getopt_long(argc, argv, "vhDc:s:o:p:b:d:f:",
+    while ((opt = getopt_long(argc, argv, "vhDc:s:o:p:b:d:f",
                               long_options, &option_index)) != -1) {
         switch (opt) {
             case 'h': utils::printHelp(MANUAL); return 0;
@@ -53,17 +53,7 @@ int main(int argc, char **argv) {
             case 'p': cli_param_file   = optarg; break;
             case 'b': cli_battery_file = optarg; break;
             case 'd': cli_dist_file    = optarg; break;
-            case 'f': {
-                std::string fmt = optarg;
-                if (fmt == "routes")     cli_print_format = PRINT_FORMAT::ROUTES;
-                else if (fmt == "txt")   cli_print_format = PRINT_FORMAT::TXT;
-                else {
-                    std::cerr << "[main] Unknown format '" << fmt
-                              << "'. Valid values: txt, routes\n";
-                    return 1;
-                }
-                break;
-            }
+            case 'f': cli_print_routes = true; break;
             case '?': return 1;
         }
     }
@@ -76,7 +66,7 @@ int main(int argc, char **argv) {
     if (!cfg_filename.empty()) {
         try {
             loader::load_yaml_config(cfg, cfg_filename);
-            std::cout << "[config] Loaded: " << cfg_filename << "\n";
+            utils::dbg << "[config] Loaded: " << cfg_filename << "\n";
         } catch (const std::exception& e) {
             std::cerr << utils::red << e.what() << "\n" << utils::reset;
             return 1;
@@ -91,7 +81,6 @@ int main(int argc, char **argv) {
     if (cli_battery_file)  cfg.battery_file  = *cli_battery_file;
     if (cli_dist_file)     cfg.dist_file     = *cli_dist_file;
     if (cli_output_file)   cfg.output_file   = *cli_output_file;
-    if (cli_print_format)  cfg.print_format  = *cli_print_format;
     if (cli_debug)         cfg.debug         = true;
 
     if (cfg.debug)
@@ -146,19 +135,25 @@ int main(int argc, char **argv) {
     // ------------------------------------------------------------------
     // Report
     // ------------------------------------------------------------------
+    if (cfg.output_file.empty())
+        cfg.output_file = "solution.txt";
 
-    sol.print(std::cout, inst, cfg.crews, cfg.print_format);
+    const PRINT_FORMAT console_format = cli_print_routes
+                                      ? PRINT_FORMAT::ROUTES
+                                      : PRINT_FORMAT::TXT;
 
-    if (!cfg.output_file.empty()) {
-        std::ofstream out(cfg.output_file);
-        if (out) {
-            sol.print(out, inst, cfg.crews, cfg.print_format);
-            utils::dbg << "[main] Solution written to " << cfg.output_file << "\n";
-        } else {
-            utils::dbg << utils::red
-                      << "[main] Warning: cannot open output file: "
-                      << cfg.output_file << "\n" << utils::reset;
-        }
+    sol.print(std::cout, inst, cfg.crews, console_format);
+
+    std::ofstream out(cfg.output_file);
+    if (out) {
+        // File output is always the readable TXT solution format.
+        sol.print(out, inst, cfg.crews, PRINT_FORMAT::TXT);
+        utils::dbg << "[main] Solution written to " << cfg.output_file << "\n";
+    } else {
+        std::cerr << utils::red
+                  << "[main] Error: cannot open output file: "
+                  << cfg.output_file << "\n" << utils::reset;
+        return 1;
     }
 
     return 0;

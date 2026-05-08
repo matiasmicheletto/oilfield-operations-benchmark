@@ -53,5 +53,5 @@ solver:
 # ---------------------------------------------------------------------------
 output:
   file: ""          # -o  Write solution to this file (plain text).
-                    # Leave empty to print to stdout only.
+                    # Leave empty to use the default "solution.txt".
   debug: false      # --dbg  Print verbose solver diagnostics.

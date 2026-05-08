@@ -93,12 +93,14 @@ OPTIONS
 
    -o FILE, --output FILE
       Write the solution to FILE in plain-text format.
-      If omitted the solution is printed to stdout only.
+      If omitted, the default file name "solution.txt" is used.
 
-   -f FORMAT, --format FORMAT
-      Output format for the solution output to be printed in CLI. Supported formats are:
-         txt: Plain text (default).
-         routes: matrices where rows are crews and columns are well numbers.
+   -f, --format
+      Print only the crew-route matrix to stdout (console).
+      This option takes no argument.
+      Without -f, stdout prints the full human-readable text solution.
+      Regardless of -f, the output file written with -o (or default
+      "solution.txt") is always plain-text full solution format.
 
    -D, --dbg
       Print verbose diagnostic messages from the loader and solver.
@@ -123,15 +125,29 @@ CONFIGURATION FILE
      tolerance: 0.05         # ±fraction of Gpt  (float, e.g. 0.05 = ±5 %)
      crews:     2            # number of intervention crews  (integer)
 
-   output:
-     file:  ""               # write solution here; empty = stdout only
-     debug: false            # verbose diagnostics  (true/false)
+    output:
+       file:  ""               # output path; empty uses "solution.txt"
+       debug: false            # verbose diagnostics  (true/false)
 
    A template is provided in solver/solver_config.yaml.
 
 OUTPUT FORMAT
-   When a feasible solution is found the following lines are printed
-   (and optionally written to the output file):
+    When a feasible solution is found, the output file always contains the
+    human-readable plain-text solution (selected wells, per-well regimes,
+    per-crew routes, totals).
+
+    Stdout behavior:
+       Without -f: prints the same human-readable plain-text solution.
+       With -f:    prints the route matrix only (one row per crew).
+
+    Route-matrix stdout format (-f):
+       <crew_id> <well_id> <well_id> ...
+
+    Example:
+       1 6 7 2
+       2 5 4 1
+
+    Full text output includes:
 
      Selected wells (N): <id1> <id2> ...
      Route (depot=0): 0 <id_a> <id_b> ... 0
@@ -160,12 +176,18 @@ EXAMPLES
          --set solver.max_wells=25 \
          --set solver.tolerance=0.10
 
-   # Config file for solver knobs, explicit paths for instance files
+      # Config file for solver knobs, explicit paths for instance files
    solve -c solver_config.yaml \
          -p instances/parameters_100_2_3.dat \
          -b instances/batteries_100_2_3.dat \
          -d instances/distance_100_2_3.dat \
          -o solution_3.txt
+
+      # Print route matrix to stdout while still writing full text to solution.txt
+      solve -p instances/parameters_100_2_1.dat \
+         -b instances/batteries_100_2_1.dat \
+         -d instances/distance_100_2_1.dat \
+         -f
 
    # Enable debug output
    solve -c solver_config.yaml -D
