@@ -31,10 +31,10 @@ bool solve(const Instance& inst, Solution& sol,
     sol.crew_routes.clear();
     sol.route.clear();
 
-    const double tolerance = 0.1;// cfg.tolerance;
-    const int    max_qty   = cfg.max_quantity;
-    //const double max_cost  = cfg.max_cost;
-    //const double max_loss  = cfg.max_loss;
+    const double tolerance       = cfg.tolerance;
+    const int    max_qty         = cfg.max_quantity;
+    const double max_cost_global = cfg.max_cost;
+    const double max_loss_global = cfg.max_loss;
 
     // ------------------------------------------------------------------
     // Build lookup structures
@@ -77,8 +77,8 @@ bool solve(const Instance& inst, Solution& sol,
 
         // Clamp target to physical maximum (same as original feasibility logic)
         const double eff_target = std::min(bat.target_gross, max_prod);
-        const double max_cost = bat.max_cost;
-        const double max_loss = bat.max_loss;//
+        const double max_cost_bat = bat.max_cost;
+        const double max_loss_bat = bat.max_loss;
         const bool need_increase = current_prod < eff_target * (1.0 - tolerance);
         const bool need_decrease = current_prod > eff_target * (1.0 + tolerance);
 
@@ -142,6 +142,8 @@ bool solve(const Instance& inst, Solution& sol,
         // Scan sorted wells and adjust regimes until gap is closed
         // --------------------------------------------------------------
         std::vector<int> selected_in_bat;
+        double           bat_cost_acc = 0.0;
+        double           bat_loss_acc = 0.0;
 
         for (size_t i : order) {
             if (gap <= 1e-9) break;  // target met
@@ -176,9 +178,11 @@ bool solve(const Instance& inst, Solution& sol,
             }
             // Check global hard constraints before accepting
             const double loss_w = std::max(0.0, w.gross_prod - w.net_prod);// * new_regime / 100.0;
-            if (sel_count + 1  > max_qty)              continue;
-            if (sel_cost + w.cost > max_cost)           continue;
-            if (sel_loss_acc + loss_w > max_loss)       continue;
+            if (sel_count + 1 > max_qty) continue;
+            if (sel_cost + w.cost > max_cost_global) continue;
+            if (sel_loss_acc + loss_w > max_loss_global) continue;
+            if (bat_cost_acc + w.cost > max_cost_bat) continue;
+            if (bat_loss_acc + loss_w > max_loss_bat) continue;
 
             // Accept adjustment
             gap -= gap_reduction;
@@ -188,6 +192,8 @@ bool solve(const Instance& inst, Solution& sol,
             sel_count++;
             sel_cost     += w.cost;
             sel_loss_acc += loss_w;
+            bat_cost_acc += w.cost;
+            bat_loss_acc += loss_w;
         }
 
         for (int id : selected_in_bat)
