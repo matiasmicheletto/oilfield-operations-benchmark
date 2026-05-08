@@ -32,7 +32,17 @@ A modular Python library for generating synthetic oilfield datasets tailored for
 ## 📁 Repository Structure
 ```
 oilfield-operations-benchmark/
-├── run_pipeline.sh             # End-to-end pipeline script
+├── run_pipeline.sh             # Compatibility wrapper -> pipelines/run_all.sh
+├── pipelines/
+│   ├── run_all.sh              # Main entrypoint to run all steps
+│   ├── 01_generate_instances.sh
+│   ├── 02_convert_zpl_to_lp.sh
+│   ├── 03_solve_cplex.sh
+│   ├── 04_run_solvers.sh
+│   ├── 05_compare_solutions.sh
+│   ├── 06_plot_routes.sh
+│   └── lib/
+│       └── common.sh           # Shared args, paths, and helper functions
 ├── generator/
 │   ├── main.py                 # Entry point for instance generation
 │   ├── generator_config.yaml   # Default configuration
@@ -50,11 +60,15 @@ oilfield-operations-benchmark/
 │   ├── include/
 │   │   ├── loader.h
 │   │   ├── models.h
+│   │   ├── solver_base.h
+│   │   ├── greedy_solver.h
 │   │   ├── solver.h
 │   │   └── utils.h
 │   └── src/
+│       ├── greedy_solver.cpp
 │       ├── loader.cpp
 │       ├── solve_main.cpp
+│       ├── solver_factory.cpp
 │       ├── solver.cpp
 │       └── utils.cpp
 ├── output/
@@ -84,17 +98,20 @@ Or install from [`requirements.txt`](requirements.txt):
 
 #### Full Pipeline
 
-Run the entire pipeline (generate instances → solve with SCIP/CPLEX → solve with greedy):
+Run the entire pipeline (generate instances -> convert ZPL -> solve with CPLEX -> run solver methods -> compare -> plot):
 
 ```bash
-bash run_pipeline.sh [options]
+bash pipelines/run_all.sh [options]
 ```
+
+`run_pipeline.sh` is still available as a compatibility wrapper and forwards all arguments to `pipelines/run_all.sh`.
 
 **Options:**
 
 | Flag | Long form | Description | Default |
 |------|-----------|-------------|---------|
-| `-n N` | `--instances N` | Number of instances to generate | 2 |
+| `-n N` | `--instances N` | Number of instances to generate | 5 |
+| `-s N` | `--scenarios N` | Number of scenarios per instance | 1 |
 | `-w N` | `--wells N` | Number of wells per instance | 10 |
 | `-b N` | `--batteries N` | Number of batteries per instance | 2 |
 | `-d` | `--dry-run` | Print commands without executing | false |
@@ -103,8 +120,10 @@ bash run_pipeline.sh [options]
 **Examples:**
 
 ```bash
-bash run_pipeline.sh -w 25 -b 2 -n 5
-bash run_pipeline.sh --wells 100 --batteries 3 --instances 10
+bash pipelines/run_all.sh -w 25 -b 2 -n 5
+bash pipelines/run_all.sh --wells 100 --batteries 3 --instances 10
+bash pipelines/run_all.sh -w 10 -n 2 --dry-run
+# Backward-compatible wrapper (same behavior):
 bash run_pipeline.sh -w 10 -n 2 --dry-run
 ```
 
@@ -112,8 +131,9 @@ bash run_pipeline.sh -w 10 -n 2 --dry-run
 1. Generate instances (`.dat`, `.zpl`, `.lp` files)
 2. Convert ZPL → LP via `zimpl` (skipped if `zimpl` not in PATH — LP files already written in step 1)
 3. Solve LP models with CPLEX (skipped if `cplex` not in PATH)
-4. Solve LP models with SCIP (skipped if `scip` not in PATH)
-5. Solve instances with solver methods
+4. Solve instances with solver methods (currently `greedy`, extensible via `--method`)
+5. Compare solutions and write benchmark CSV(s)
+6. Plot route overlays on spatial maps
 
 
 ## ⚙️ Configuration Guide
@@ -439,7 +459,7 @@ Then run directly:
 solver/bin/solve -c solver_config.yaml -p parameters.dat -b batteries.dat -d distance.dat -o solution.txt
 ```
 
-The `run_pipeline.sh` script builds and invokes the solver automatically.
+The pipeline entrypoint (`pipelines/run_all.sh`, or compatibility wrapper `run_pipeline.sh`) builds and invokes the solver automatically.
 
 ### SCIP Solver
 

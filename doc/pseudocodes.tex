@@ -1,0 +1,61 @@
+\documentclass[runningheads, final]{comsis2}
+
+\setcounter{page}{1}
+
+\usepackage[pagewise]{lineno}
+\linenumbers
+
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usetikzlibrary{shapes.symbols, shapes.geometric, positioning, arrows.meta}
+
+\bibliographystyle{unsrt}
+
+\title{Multiobjective optimization model for regime adjustment in crude oil production}
+\titlerunning{Multiobjective optimization in crude oil production}
+
+\author{
+    Matías Micheletto\inst{1} \and 
+    Javier Marenco \inst{2} \and 
+    Carlos De Marziani \inst{1} \and 
+    Rodrigo Santos \inst{3}
+}
+
+\institute{  Instituto Multidisciplinario para la Investigación y el Desarrollo Productivo y Social de la Cuenca Golfo San Jorge - CONICET\\
+            8000 Comodoro Rivadavia, Argentina\\
+            \email{matias.micheletto@uns.edu.ar, cdemarzi@gmail.com}
+            \and
+            Universidad Torcuato di Tella\\
+            C1428, Ciudad Autónoma de Buenos Aires, Argentina\\
+            \email{javier.marenco@utdt.edu}
+            \and
+            Dep. Ing. Eléctrica y Computadoras, Universidad Nacional del Sur,
+            8000, Bahia Blanca, Argentina\\
+            \email{ierms@uns.edu.ar}
+            }
+\begin{document}
+\maketitle
+
+\begin{abstract}
+    In mature conventional oilfields, production is organized through geographically distributed batteries that operate under limited processing capacity. Although supervisory platforms enable remote monitoring, adjustments in pumping regimes frequently require on-site intervention by maintenance teams, whose movements generate significant logistical costs. Consequently, production reconfiguration decisions are intrinsically coupled with routing decisions, giving rise to a structured multiobjective optimization problem. This paper proposes a multiobjective mixed-integer linear programming (MILP) formulation that integrates production regime adjustment with maintenance team routing. The model simultaneously minimizes travel distance, production losses, intervention costs, and the number of adjusted wells, while satisfying battery capacity constraints. Intervention costs are modeled through operational risk and technical priority components, introducing realistic trade-offs between production importance and field intervention effort. Synthetic instances inspired by statistical properties of mature oilfields are generated to evaluate the computational performance of the formulation. Preliminary computational experiments illustrate the feasibility of the approach and the structure of the Pareto frontier, highlighting the trade-offs between operational efficiency and intervention costs.
+      
+    \vspace{6pt}
+    \textbf{Keywords: }
+    Oil \& Gas, 
+    Multiobjective Optimization, 
+    Mixed-Integer Linear Programming, 
+    Production Routing, 
+    Field Intervention Planning.
+\end{abstract}
+
+
+\end{document}
