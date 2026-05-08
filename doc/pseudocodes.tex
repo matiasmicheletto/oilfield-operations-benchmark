@@ -1,61 +1,155 @@
-\documentclass[runningheads, final]{comsis2}
+\documentclass[a4paper,11pt]{article}
 
-\setcounter{page}{1}
-
-\usepackage[pagewise]{lineno}
-\linenumbers
-
-\usepackage{hyperref}
-\usepackage{booktabs}
-\usepackage{verbatim}
-\usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{tikz}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usetikzlibrary{shapes.symbols, shapes.geometric, positioning, arrows.meta}
-
-\bibliographystyle{unsrt}
+\usepackage{needspace}
 
 \title{Multiobjective optimization model for regime adjustment in crude oil production}
-\titlerunning{Multiobjective optimization in crude oil production}
 
 \author{
-    Matías Micheletto\inst{1} \and 
-    Javier Marenco \inst{2} \and 
-    Carlos De Marziani \inst{1} \and 
-    Rodrigo Santos \inst{3}
+    Matias Micheletto\\
+    Javier Marenco\\
+    Carlos De Marziani\\
+    Rodrigo Santos
 }
-
-\institute{  Instituto Multidisciplinario para la Investigación y el Desarrollo Productivo y Social de la Cuenca Golfo San Jorge - CONICET\\
-            8000 Comodoro Rivadavia, Argentina\\
-            \email{matias.micheletto@uns.edu.ar, cdemarzi@gmail.com}
-            \and
-            Universidad Torcuato di Tella\\
-            C1428, Ciudad Autónoma de Buenos Aires, Argentina\\
-            \email{javier.marenco@utdt.edu}
-            \and
-            Dep. Ing. Eléctrica y Computadoras, Universidad Nacional del Sur,
-            8000, Bahia Blanca, Argentina\\
-            \email{ierms@uns.edu.ar}
-            }
+\date{}
 \begin{document}
+
 \maketitle
 
 \begin{abstract}
-    In mature conventional oilfields, production is organized through geographically distributed batteries that operate under limited processing capacity. Although supervisory platforms enable remote monitoring, adjustments in pumping regimes frequently require on-site intervention by maintenance teams, whose movements generate significant logistical costs. Consequently, production reconfiguration decisions are intrinsically coupled with routing decisions, giving rise to a structured multiobjective optimization problem. This paper proposes a multiobjective mixed-integer linear programming (MILP) formulation that integrates production regime adjustment with maintenance team routing. The model simultaneously minimizes travel distance, production losses, intervention costs, and the number of adjusted wells, while satisfying battery capacity constraints. Intervention costs are modeled through operational risk and technical priority components, introducing realistic trade-offs between production importance and field intervention effort. Synthetic instances inspired by statistical properties of mature oilfields are generated to evaluate the computational performance of the formulation. Preliminary computational experiments illustrate the feasibility of the approach and the structure of the Pareto frontier, highlighting the trade-offs between operational efficiency and intervention costs.
-      
-    \vspace{6pt}
-    \textbf{Keywords: }
-    Oil \& Gas, 
-    Multiobjective Optimization, 
-    Mixed-Integer Linear Programming, 
-    Production Routing, 
-    Field Intervention Planning.
+    In mature conventional oilfields...      
 \end{abstract}
+
+\section{Greedy Heuristic Pseudocode}
+
+\Needspace{12cm}
+\begin{algorithm}[H]
+\caption{Greedy solver for regime adjustment and crew routing}
+\label{alg:greedy_solver}
+\begin{algorithmic}[1]
+\Require Instance $I=(W,B,D)$, configuration $cfg=(\tau, Q_{\max}, C_{\max}^{g}, L_{\max}^{g}, m, crews)$
+\Ensure Feasible solution $S$ (selected wells, new regimes, routes) or \textsc{Infeasible}
+
+\State Initialize $S$ with empty selected wells, empty routes, and infeasible flag
+\State Build map $W_b \gets \{w \in W : w.battery = b\}$ for each battery $b \in B$
+\State $selCount \gets 0$, $selCost \gets 0$, $selLoss \gets 0$
+
+\ForAll{$b \in B$}
+    \State $maxProd \gets \sum_{w \in W_b} \frac{w.G}{w.r} \cdot 100$
+    \State $curProd \gets \sum_{w \in W_b} w.G$
+    \State $target \gets \min(b.Gpt, maxProd)$
+
+    \If{$curProd < target(1-\tau)$}
+        \State $needIncrease \gets$ true
+        \State $gap \gets target - curProd$
+    \ElsIf{$curProd > target(1+\tau)$}
+        \State $needIncrease \gets$ false
+        \State $gap \gets curProd - target$
+    \Else
+        \State \textbf{continue} 
+    \EndIf
+
+    \State Sort wells in $W_b$ according to method $m$:
+    \Statex \hspace{1em} \texttt{priority\_cost}: order by regime ratio (ascending if increase, descending if decrease)
+    \Statex \hspace{1em} \texttt{loss}: order by $(G-N)$ (ascending if increase, descending if decrease)
+    \Statex \hspace{1em} \texttt{route}: nearest-neighbor route order from distance matrix $D$
+
+    \State $batCost \gets 0$, $batLoss \gets 0$, $selected_b \gets \emptyset$
+
+    \ForAll{$w$ in sorted $W_b$}
+        \If{$gap \le 0$}
+            \State \textbf{break}
+        \EndIf
+
+        \If{$needIncrease$}
+            \State $room \gets \frac{w.G}{w.r} \cdot 100 - w.G$
+            \If{$room \le 0$}
+                \State \textbf{continue}
+            \EndIf
+            \If{$gap \ge room$}
+                \State $r' \gets 100$, $\Delta \gets room$
+            \Else
+                \State $r' \gets w.r + \frac{gap}{(w.G/w.r)\cdot 100}$, $\Delta \gets gap$
+            \EndIf
+        \Else
+            \State $room \gets w.G$
+            \If{$room \le 0$}
+                \State \textbf{continue}
+            \EndIf
+            \If{$gap \ge room$}
+                \State $r' \gets 0$, $\Delta \gets room$
+            \Else
+                \State $r' \gets (w.G-gap)\cdot w.r / w.G$, $\Delta \gets gap$
+            \EndIf
+        \EndIf
+
+        \State $loss_w \gets \max(0, w.G-w.N)$
+
+        \If{$selCount+1 > Q_{\max}$ \textbf{or} $selCost+w.C > C_{\max}^{g}$ \textbf{or} $selLoss+loss_w > L_{\max}^{g}$}
+            \State \textbf{continue}
+        \EndIf
+        \If{$batCost+w.C > b.C_{\max}$ \textbf{or} $batLoss+loss_w > b.L_{\max}$}
+            \State \textbf{continue}
+        \EndIf
+
+        \State Accept $w$: set new regime $r'(w)$ in $S$
+        \State $gap \gets gap-\Delta$
+        \State Add $w$ to $selected_b$ and global selected set
+        \State $selCount \gets selCount+1$, $selCost \gets selCost+w.C$, $selLoss \gets selLoss+loss_w$
+        \State $batCost \gets batCost+w.C$, $batLoss \gets batLoss+loss_w$
+    \EndFor
+
+    \State Compute achieved production for battery $b$ using adjusted regimes for selected wells
+    \If{achieved production not in $[target(1-\tau),\, target(1+\tau)]$}
+        \State \Return \textsc{Infeasible}
+    \EndIf
+\EndFor
+
+\State Set total cost/loss from selected wells
+\State Build multi-crew routes with nearest-neighbor + 2-opt over selected wells
+\State Store routes, total distance, and mark $S$ as feasible
+\State \Return $S$
+
+\end{algorithmic}
+\end{algorithm}
+
+\Needspace{4cm}
+\begin{algorithm}[H]
+\caption{Multi-crew route construction (nearest-neighbor + 2-opt)}
+\label{alg:multi_crew_route}
+\begin{algorithmic}[1]
+\Require Selected well IDs $V$, distance matrix $D$, number of crews $k$
+\Ensure Crew routes $R_1,\dots,R_k$ and total traveled distance $dist$
+
+\If{$V = \emptyset$}
+    \State \Return $k$ empty routes and $dist \gets 0$
+\EndIf
+
+\State Sort $V$ by increasing distance to depot node $0$ using $D[0][v]$
+\State Initialize $k$ empty buckets $B_1,\dots,B_k$
+
+\For{$i \gets 1$ to $|V|$}
+    \State Assign $V[i]$ to $B_{((i-1) \bmod k)+1}$ 
+\EndFor
+
+\State $dist \gets 0$
+\For{$c \gets 1$ to $k$}
+    \If{$B_c = \emptyset$}
+        \State $R_c \gets [0,0]$
+        \State \textbf{continue}
+    \EndIf
+
+    \State Build an initial route with nearest-neighbor starting at depot $0$
+    \State Apply 2-opt local search to improve the route
+    \State Ensure route starts and ends at depot: $R_c = [0,\dots,0]$
+    \State $dist \gets dist + \sum_{j=1}^{|R_c|-1} D[R_c[j], R_c[j+1]]$
+\EndFor
+
+\State \Return $\{R_c\}_{c=1}^{k}$ and $dist$
+
+\end{algorithmic}
+\end{algorithm}
 
 
 \end{document}
