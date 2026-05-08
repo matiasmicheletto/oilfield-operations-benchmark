@@ -66,7 +66,11 @@ SOLVER_DIR="$ROOT_DIR/solver"
 INSTANCES_DIR="$GENERATOR_DIR/instances"
 OUTPUT_DIR="$ROOT_DIR/output"
 CPLEX_OUTPUT_DIR="$OUTPUT_DIR/cplex"
-GREEDY_OUTPUT_DIR="$OUTPUT_DIR/greedy"
+# Method-specific output directories
+declare -A METHOD_OUTPUT_DIRS
+METHOD_OUTPUT_DIRS[greedy]="$OUTPUT_DIR/greedy"
+# Future: METHOD_OUTPUT_DIRS[sa]="$OUTPUT_DIR/sa"
+# Future: METHOD_OUTPUT_DIRS[ga]="$OUTPUT_DIR/ga"
 SCIP_OUTPUT_DIR="$OUTPUT_DIR/scip"
 
 # -------------------------------
@@ -110,7 +114,10 @@ if ! command -v python >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$INSTANCES_DIR" "$CPLEX_OUTPUT_DIR" "$GREEDY_OUTPUT_DIR" "$SCIP_OUTPUT_DIR"
+mkdir -p "$INSTANCES_DIR" "$CPLEX_OUTPUT_DIR" "$SCIP_OUTPUT_DIR"
+for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
+  mkdir -p "${METHOD_OUTPUT_DIRS[$opt_method]}"
+done
 
 # Clear previous instances and optimizer output so stale results don't mix with new ones
 if [[ "$DRY_RUN" != "true" ]]; then
@@ -118,7 +125,10 @@ if [[ "$DRY_RUN" != "true" ]]; then
   find "$INSTANCES_DIR"     -maxdepth 1 -name "*.zpl" -delete
   find "$INSTANCES_DIR"     -maxdepth 1 -name "*.lp"  -delete
   find "$CPLEX_OUTPUT_DIR"  -maxdepth 1 -name "*.sol" -delete
-  find "$GREEDY_OUTPUT_DIR" -maxdepth 1 -name "*.txt" -delete
+  for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
+    find "${METHOD_OUTPUT_DIRS[$opt_method]}" -maxdepth 1 -name "*.txt" -delete
+    find "${METHOD_OUTPUT_DIRS[$opt_method]}" -maxdepth 1 -name "*.png" -delete
+  done
   find "$SCIP_OUTPUT_DIR"   -maxdepth 1 -name "*.txt" -delete
 fi
 
@@ -251,11 +261,12 @@ fi
 # -----------------------------------------------------------------------
 # Step 5: Greedy heuristic solver (all sort methods)
 # -----------------------------------------------------------------------
-echo "[4/5] Running greedy heuristic solver on all instances (all sort methods)"
+echo "[4/5] Running optimization solvers on all instances"
 
 SOLVER_BIN="$SOLVER_DIR/bin/solve"
 SOLVER_CONFIG="$SOLVER_DIR/solver_config.yaml"
 SORT_METHODS=(priority_cost loss route)
+OPTIMIZATION_METHODS=(greedy)  # Extensible for future: (greedy sa ga tabu)
 
 # Check if makefile exists before checking for binary, to give a more helpful error message
 if [[ ! -f "$SOLVER_DIR/Makefile" ]]; then
@@ -311,28 +322,37 @@ else
         continue
       fi
 
-      for method in "${SORT_METHODS[@]}"; do
-        sol_path="$GREEDY_OUTPUT_DIR/greedy_${scenario_stem}_${method}.txt"
-        routes_path="$GREEDY_OUTPUT_DIR/routes_${scenario_stem}_${method}.txt"
-        echo "  - Solving instance '$param_stem' scenario '$scenario_stem' method='$method' -> $(basename "$sol_path")"
-        if [[ "$DRY_RUN" == "true" ]]; then
-          echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --set solver.sort_method=$method -f -o $sol_path > $routes_path"
-        else
-          "$SOLVER_BIN" \
-            -c "$SOLVER_CONFIG" \
-            -p "$param_path" \
-            -b "$bat_path" \
-            -d "$dist_path" \
-            --set "solver.sort_method=$method" \
-            -f \
-            -o "$sol_path" > "$routes_path"
-        fi
-      done
-    done
-  done
-fi
+          for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
+            opt_output_dir="${METHOD_OUTPUT_DIRS[$opt_method]}"
 
-echo "Done. Greedy solutions written to: $GREEDY_OUTPUT_DIR"
+            for method in "${SORT_METHODS[@]}"; do
+              sol_path="$opt_output_dir/${opt_method}_${scenario_stem}_${method}.txt"
+              routes_path="$opt_output_dir/routes_${scenario_stem}_${method}.txt"
+              echo "  - Solving instance '$param_stem' scenario '$scenario_stem' optimizer='$opt_method' sort_method='$method' -> $(basename "$sol_path")"
+              if [[ "$DRY_RUN" == "true" ]]; then
+                echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --method $opt_method --set solver.sort_method=$method -f -o $sol_path > $routes_path"
+              else
+                "$SOLVER_BIN" \
+                  -c "$SOLVER_CONFIG" \
+                  -p "$param_path" \
+                  -b "$bat_path" \
+                  -d "$dist_path" \
+                  --method "$opt_method" \
+                  --set "solver.sort_method=$method" \
+                  -f \
+                  -o "$sol_path" > "$routes_path"
+              fi
+            done
+          done
+        done
+      done
+    fi
+
+    # Report output directories for each optimization method
+    for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
+      opt_output_dir="${METHOD_OUTPUT_DIRS[$opt_method]}"
+      echo "Done. $opt_method solutions written to: $opt_output_dir"
+    done
 
 # -----------------------------------------------------------------------
 # Step 6: Compare solutions and write benchmark CSV
@@ -340,15 +360,20 @@ echo "Done. Greedy solutions written to: $GREEDY_OUTPUT_DIR"
 COMPARE_SCRIPT="$OUTPUT_DIR/compare_solutions.py"
 BENCHMARK_CSV="$OUTPUT_DIR/benchmark.csv"
 
-echo "[5/6] Comparing solutions and writing results to $BENCHMARK_CSV"
+echo "[5/6] Comparing solutions and writing results"
 if [[ ! -f "$COMPARE_SCRIPT" ]]; then
   echo "Warning: compare script not found at '$COMPARE_SCRIPT' — skipping step 5."
 else
-  if [[ "$DRY_RUN" == "true" ]]; then
-    echo "    python $COMPARE_SCRIPT --csv $BENCHMARK_CSV"
-  else
-    python "$COMPARE_SCRIPT" --csv "$BENCHMARK_CSV"
-  fi
+  for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
+    opt_output_dir="${METHOD_OUTPUT_DIRS[$opt_method]}"
+    method_csv="$OUTPUT_DIR/benchmark_${opt_method}.csv"
+    echo "  - Comparing '$opt_method' solutions and writing to $method_csv"
+    if [[ "$DRY_RUN" == "true" ]]; then
+      echo "    python $COMPARE_SCRIPT --greedy $opt_output_dir --csv $method_csv"
+    else
+      python "$COMPARE_SCRIPT" --greedy "$opt_output_dir" --csv "$method_csv"
+    fi
+  done
 fi
 
 # -----------------------------------------------------------------------
@@ -360,29 +385,33 @@ echo "[6/6] Plotting crew routes over spatial maps"
 if [[ ! -f "$PLOT_SCRIPT" ]]; then
   echo "Warning: plot script not found at '$PLOT_SCRIPT' — skipping step 6."
 else
-  shopt -s nullglob
-  routes_files=("$GREEDY_OUTPUT_DIR"/routes_*.txt)
-  if (( ${#routes_files[@]} == 0 )); then
-    echo "Warning: no routes_*.txt files found in '$GREEDY_OUTPUT_DIR' — skipping step 6."
-  else
+  for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
+    opt_output_dir="${METHOD_OUTPUT_DIRS[$opt_method]}"
+    shopt -s nullglob
+    routes_files=("$opt_output_dir"/routes_*.txt)
+    if (( ${#routes_files[@]} == 0 )); then
+      echo "  Note: no routes_*.txt files found in '$opt_output_dir' for method '$opt_method'."
+      continue
+    fi
+
     for routes_path in "${routes_files[@]}"; do
       routes_name="$(basename "$routes_path")"
-      # routes_<scenario_stem>_<method>.txt
-      # Strip leading "routes_" and trailing "_<method>.txt" to recover scenario_stem
+      # routes_<scenario_stem>_<sort_method>.txt
+      # Strip leading "routes_" and trailing "_<sort_method>.txt" to recover scenario_stem
       tmp="${routes_name#routes_}"
-      method_suffix="${tmp##*_}"
-      method_suffix="${method_suffix%.txt}"
-      scenario_stem="${tmp%_${method_suffix}.txt}"
+      sort_method="${tmp##*_}"
+      sort_method="${sort_method%.txt}"
+      scenario_stem="${tmp%_${sort_method}.txt}"
 
       spatial_path="$INSTANCES_DIR/spatial_data_${scenario_stem}.npz"
-      overlay_path="$GREEDY_OUTPUT_DIR/route_overlay_${scenario_stem}_${method_suffix}.png"
+      overlay_path="$opt_output_dir/route_overlay_${scenario_stem}_${sort_method}.png"
 
       if [[ ! -f "$spatial_path" ]]; then
         echo "  Warning: spatial data not found for '$scenario_stem' — skipping."
         continue
       fi
 
-      echo "  - Plotting routes for '$scenario_stem' method='$method_suffix' -> $(basename "$overlay_path")"
+      echo "  - Plotting routes for '$opt_method'/'$scenario_stem' sort_method='$sort_method' -> $(basename "$overlay_path")"
       if [[ "$DRY_RUN" == "true" ]]; then
         echo "    python $PLOT_SCRIPT --spatial $spatial_path --routes $routes_path --output $overlay_path"
       else
@@ -392,6 +421,6 @@ else
           --output  "$overlay_path"
       fi
     done
-  fi
-  echo "Done. Route overlay images written to: $GREEDY_OUTPUT_DIR"
+    echo "  Done. Route overlays for '$opt_method' written to: $opt_output_dir"
+  done
 fi
