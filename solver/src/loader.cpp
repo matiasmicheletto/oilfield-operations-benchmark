@@ -43,6 +43,19 @@ void load_yaml_config(SolverConfig& cfg, const std::string& path) {
             cfg.max_loss     = s["max_loss"].as<double>();
         if (s["sort_method"]  && s["sort_method"].IsScalar())
             cfg.sort_method  = s["sort_method"].as<std::string>();
+
+        if (s["hs_hms"])              cfg.hs_hms              = s["hs_hms"].as<int>();
+        if (s["hs_iterations"])       cfg.hs_iterations       = s["hs_iterations"].as<int>();
+        if (s["hs_hmcr"])             cfg.hs_hmcr             = s["hs_hmcr"].as<double>();
+        if (s["hs_par"])              cfg.hs_par              = s["hs_par"].as<double>();
+        if (s["hs_bw"])               cfg.hs_bw               = s["hs_bw"].as<double>();
+        if (s["hs_change_prob"])      cfg.hs_change_prob      = s["hs_change_prob"].as<double>();
+        if (s["hs_seed_with_greedy"]) cfg.hs_seed_with_greedy = s["hs_seed_with_greedy"].as<bool>();
+        if (s["hs_weight_cost"])      cfg.hs_weight_cost      = s["hs_weight_cost"].as<double>();
+        if (s["hs_weight_loss"])      cfg.hs_weight_loss      = s["hs_weight_loss"].as<double>();
+        if (s["hs_weight_distance"])  cfg.hs_weight_distance  = s["hs_weight_distance"].as<double>();
+        if (s["hs_weight_quantity"])  cfg.hs_weight_quantity  = s["hs_weight_quantity"].as<double>();
+        if (s["hs_penalty"])          cfg.hs_penalty          = s["hs_penalty"].as<double>();
     }
 
     if (root["output"]) {
@@ -80,6 +93,18 @@ void apply_override(SolverConfig& cfg, const std::string& kv) {
         else if (key == "solver.max_cost")     cfg.max_cost     = std::stod(val);
         else if (key == "solver.max_loss")     cfg.max_loss     = std::stod(val);
         else if (key == "solver.sort_method")  cfg.sort_method  = val;
+        else if (key == "solver.hs_hms")              cfg.hs_hms              = std::stoi(val);
+        else if (key == "solver.hs_iterations")       cfg.hs_iterations       = std::stoi(val);
+        else if (key == "solver.hs_hmcr")             cfg.hs_hmcr             = std::stod(val);
+        else if (key == "solver.hs_par")              cfg.hs_par              = std::stod(val);
+        else if (key == "solver.hs_bw")               cfg.hs_bw               = std::stod(val);
+        else if (key == "solver.hs_change_prob")      cfg.hs_change_prob      = std::stod(val);
+        else if (key == "solver.hs_seed_with_greedy") cfg.hs_seed_with_greedy = (val == "true" || val == "1");
+        else if (key == "solver.hs_weight_cost")      cfg.hs_weight_cost      = std::stod(val);
+        else if (key == "solver.hs_weight_loss")      cfg.hs_weight_loss      = std::stod(val);
+        else if (key == "solver.hs_weight_distance")  cfg.hs_weight_distance  = std::stod(val);
+        else if (key == "solver.hs_weight_quantity")  cfg.hs_weight_quantity  = std::stod(val);
+        else if (key == "solver.hs_penalty")          cfg.hs_penalty          = std::stod(val);
         else if (key == "output.file")         cfg.output_file  = val;
         else if (key == "output.debug")        cfg.debug        = (val == "true" || val == "1");
         else

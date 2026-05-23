@@ -145,7 +145,8 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
                     new_regime    = 100.0;
                     gap_reduction = room;
                 } else {
-                    new_regime    = w.current_regime + gap / w.gross_prod;
+                    //new_regime    = w.current_regime + gap / (w.gross_prod/w.current_regime*100);
+                    new_regime    = w.current_regime + gap / w.gross_prod * 100;
                     gap_reduction = gap;
                 }
             } else {
@@ -160,7 +161,6 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
                     new_regime    = (w.gross_prod * w.current_regime/100 - gap) / w.gross_prod * 100;
                     gap_reduction = gap;
                 }
-           
             }
             // Check global hard constraints before accepting
             const double loss_w = std::max(0.0, w.gross_prod - w.net_prod);
@@ -191,7 +191,8 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
             const Well& w = inst.wells[i];
             const double r = selected_set.count(w.id) ? sol.new_regimes[w.id]
                                                       : w.current_regime;
-            achieved += w.gross_prod/w.current_regime*r;
+            //achieved += w.gross_prod/w.current_regime*r;
+            achieved += w.gross_prod*r/100;
         }
 
         const bool bat_ok = (achieved >= eff_target * (1.0 - tolerance)) &&

@@ -29,7 +29,7 @@ init_defaults() {
   CPLEX_BIN=""
   CPLEX_TIME_LIMIT=1200
   SORT_METHODS=(priority_cost loss route)
-  OPTIMIZATION_METHODS=(greedy)
+  OPTIMIZATION_METHODS=(greedy hs)
 }
 
 parse_pipeline_args() {

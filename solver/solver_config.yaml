@@ -48,6 +48,27 @@ solver:
                     # loss          – ascending gross-minus-net production loss
                     # route         – nearest-neighbour TSP visit order
 
+  hs_hms: 30        # Harmony Memory Size.
+  hs_iterations: 1000
+                    # Number of improvisation iterations.
+  hs_hmcr: 0.92     # Harmony Memory Consideration Rate (0..1).
+  hs_par: 0.35      # Pitch Adjustment Rate (0..1).
+  hs_bw: 5.0        # Pitch bandwidth in regime points.
+  hs_change_prob: 0.25
+                    # For random initialization/generation, probability that
+                    # a well departs from its current regime.
+  hs_seed_with_greedy: true
+                    # Seed one harmony with the greedy solution.
+
+  # Weighted single-objective scalarization used by method=hs:
+  hs_weight_cost: 1.0
+  hs_weight_loss: 1.0
+  hs_weight_distance: 1.0
+  hs_weight_quantity: 0.2
+
+  hs_penalty: 1000.0
+                    # Penalty multiplier for target/constraint violations.
+
 # ---------------------------------------------------------------------------
 # Output
 # ---------------------------------------------------------------------------

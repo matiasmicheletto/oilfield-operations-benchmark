@@ -81,6 +81,7 @@ OPTIONS
    -m METHOD, --method METHOD
       Select the optimization algorithm. Available methods:
         greedy     Cyclic-window heuristic (default)
+        hs         Harmonic search metaheuristic (experimental)
       Default: greedy
 
    -s KEY=VALUE, --set KEY=VALUE

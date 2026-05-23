@@ -1,5 +1,6 @@
 #include "../include/solver_base.h"
 #include "../include/greedy_solver.h"
+#include "../include/harmony_search_solver.h"
 
 #include <stdexcept>
 
@@ -13,6 +14,9 @@ std::unique_ptr<SolverBase> createSolver(const std::string& method)
     if (method == "greedy") {
         return std::make_unique<GreedySolver>();
     }
+    if (method == "hs") {
+        return std::make_unique<HarmonySearchSolver>();
+    }
     // TODO: Add more solvers here as they are implemented:
     // else if (method == "simulated_annealing") {
     //     return std::make_unique<SimulatedAnnealingSolver>();
@@ -22,7 +26,7 @@ std::unique_ptr<SolverBase> createSolver(const std::string& method)
     // }
 
     throw std::invalid_argument("Unknown solver method: '" + method +
-                                "'. Supported methods: greedy");
+                                "'. Supported methods: greedy, hs");
 }
 
 } // namespace solver

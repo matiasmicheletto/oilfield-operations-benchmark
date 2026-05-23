@@ -27,6 +27,20 @@ struct SolverConfig {
     double max_cost     = 200;//std::numeric_limits<double>::max();  // budget cap (sum C[i])
     double max_loss     = 2000;//std::numeric_limits<double>::max();  // net-loss cap (sum (G-N)*regime/100)
     std::string sort_method = "priority_cost"; // per-battery well sort: priority_cost | loss | route
+
+    // [harmony_search]
+    int    hs_hms              = 30;     // harmony memory size
+    int    hs_iterations       = 1000;   // improvisation iterations
+    double hs_hmcr             = 0.92;   // harmony memory consideration rate
+    double hs_par              = 0.35;   // pitch adjustment rate
+    double hs_bw               = 5.0;    // pitch bandwidth (regime points)
+    double hs_change_prob      = 0.25;   // probability a variable departs from current regime
+    bool   hs_seed_with_greedy = true;   // seed harmony memory with greedy solution
+    double hs_weight_cost      = 1.0;    // weighted objective term: cost
+    double hs_weight_loss      = 1.0;    // weighted objective term: loss
+    double hs_weight_distance  = 1.0;    // weighted objective term: route distance
+    double hs_weight_quantity  = 0.2;    // weighted objective term: selected well count
+    double hs_penalty          = 1000.0; // global penalty multiplier for violations
     // [output]
     std::string  output_file;
     PRINT_FORMAT print_format = PRINT_FORMAT::TXT;
