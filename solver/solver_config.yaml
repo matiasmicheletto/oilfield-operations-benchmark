@@ -16,13 +16,13 @@ input:
 # Greedy cyclic-window heuristic
 # ---------------------------------------------------------------------------
 solver:
-  max_wells: 20     # K – maximum wells to visit per battery.
+  max_wells: 100    # K – maximum wells to visit per battery.
                     # The algorithm slides a window of this size through the
                     # priority-sorted well list looking for a feasible subset.
                     # Increase if no solution is found at smaller values.
                     # Typical range: 10–30.
 
-  tolerance: 0.05   # Allowed fractional deviation from battery target Gpt.
+  tolerance: 0.1    # Allowed fractional deviation from battery target Gpt.
                     # 0.05 = ±5 %.  Widen if instances have noisy targets
                     # (batteries.noise_std > 0.05 in the generator config).
 
@@ -31,13 +31,13 @@ solver:
                     # now; multi-crew partitioning is a planned extension).
                     # Typically 1–5.
 
-  max_quantity:     # Maximum number of wells that may be selected globally.
+  max_quantity: 100 # Maximum number of wells that may be selected globally.
                     # (default: unconstrained — leave empty to use the C++ default INT_MAX)
 
-  max_cost:         # Maximum total intervention cost  sum C[i] over selected wells.
+  max_cost: 5000    # Maximum total intervention cost  sum C[i] over selected wells.
                     # (default: unconstrained — leave empty to use the C++ default DBL_MAX)
 
-  max_loss:         # Maximum allowed net-loss  sum (G[i]-N[i])*newregime[i]/100.
+  max_loss: 5000    # Maximum allowed net-loss  sum (G[i]-N[i])*newregime[i]/100.
                     # During selection the actual new regime is used for the estimate.
                     # (default: unconstrained — leave empty to use the C++ default DBL_MAX)
 

@@ -62,12 +62,14 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
         // Maximum achievable production (all wells at 100 %)
         double max_prod = 0.0;
         for (size_t i : bat_all)
-            max_prod += inst.wells[i].gross_prod/inst.wells[i].current_regime*100;
+            //max_prod += inst.wells[i].gross_prod/inst.wells[i].current_regime*100;
+            max_prod += inst.wells[i].gross_prod;
 
         // Current production at existing regimes
         double current_prod = 0.0;
         for (size_t i : bat_all)
-            current_prod += inst.wells[i].gross_prod;
+            //current_prod += inst.wells[i].gross_prod;
+            current_prod += inst.wells[i].gross_prod*inst.wells[i].current_regime/100;
 
         // Clamp target to physical maximum (same as original feasibility logic)
         const double eff_target = std::min(bat.target_gross, max_prod);
@@ -87,35 +89,22 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
         // Sort well indices according to cfg.sort_method
         // --------------------------------------------------------------
         std::vector<size_t> order(bat_all.begin(), bat_all.end());
+        
         double gap = need_increase ? (eff_target - current_prod) : (current_prod - eff_target);
      
         if (cfg.sort_method == "priority_cost") {
             std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
                 const Well& wa = inst.wells[a];
                 const Well& wb = inst.wells[b];
-
-                const double ra = (wa.current_regime > 1e-9) ? wa.current_regime
-                                                : std::numeric_limits<double>::max();
-                const double rb = (wb.current_regime > 1e-9) ?  wb.current_regime
-                                                : std::numeric_limits<double>::max();
-                if (need_increase){	
-                    return ra < rb;  // ascending ratio
-                }
-                else{
-                    return rb < ra;
-                }
-                });
-            
+                return wa.cost < wb.cost; // ascending cost
+            });
         } else if (cfg.sort_method == "loss") {
             std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
-                if (need_increase){
-                    return (inst.wells[a].gross_prod - inst.wells[a].net_prod) <
-                            (inst.wells[b].gross_prod - inst.wells[b].net_prod);  // ascending loss
-                }
-                else{
-                    return (inst.wells[a].gross_prod - inst.wells[a].net_prod) >
-                            (inst.wells[b].gross_prod - inst.wells[b].net_prod);  // ascending loss
-                }
+                const double ra = inst.wells[a].gross_prod * (1 - inst.wells[a].current_regime/100);
+                const double rb = inst.wells[b].gross_prod * (1 - inst.wells[b].current_regime/100);
+                const double rx = inst.wells[a].gross_prod * inst.wells[a].current_regime/100;
+                const double ry = inst.wells[b].gross_prod * inst.wells[b].current_regime/100;
+                return need_increase ? (rb < ra) : (ry < rx); // ascending loss if increasing, ascending current production if decreasing
             });
         } else if (cfg.sort_method == "route") {
             std::vector<int> ids;
@@ -149,23 +138,26 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
             double gap_reduction;
 
             if (need_increase) {
-                const double room = w.gross_prod/w.current_regime*100-w.gross_prod;
+                //const double room = w.gross_prod/w.current_regime*100-w.gross_prod;
+                const double room = w.gross_prod - w.gross_prod * w.current_regime/100;
                 if (room <= 1e-9) continue;  // already at 100 %, nothing to gain
                 if (gap >= room) {
                     new_regime    = 100.0;
                     gap_reduction = room;
                 } else {
-                    new_regime    = w.current_regime + gap / (w.gross_prod/w.current_regime*100);
+                    new_regime    = w.current_regime + gap / w.gross_prod;
                     gap_reduction = gap;
                 }
             } else {
-                const double room = w.gross_prod;
+                //const double room = w.gross_prod;
+                const double room = w.gross_prod * w.current_regime/100;
                 if (room <= 1e-9) continue;  // already at 0 %, nothing to cut
                 if (gap >= room) {
                     new_regime    = 0.0;
                     gap_reduction = room;
                 } else {
-                    new_regime    = (w.gross_prod-gap)*(w.current_regime)/(w.gross_prod);
+                    //new_regime    = (w.gross_prod-gap)*(w.current_regime)/(w.gross_prod);
+                    new_regime    = (w.gross_prod * w.current_regime/100 - gap) / w.gross_prod * 100;
                     gap_reduction = gap;
                 }
            
