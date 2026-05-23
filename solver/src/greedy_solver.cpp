@@ -30,6 +30,12 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
     const double max_cost_global = cfg.max_cost;
     const double max_loss_global = cfg.max_loss;
 
+    utils::dbg << "Using max qty=" << max_qty
+              << ", max cost=" << max_cost_global
+              << ", max loss=" << max_loss_global
+              << ", tolerance=" << tolerance
+              << ", sort method='" << cfg.sort_method << "'.\n";
+
     // ------------------------------------------------------------------
     // Build lookup structures
     // ------------------------------------------------------------------

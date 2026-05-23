@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -31,6 +32,7 @@ static struct option long_options[] = {
 };
 
 int main(int argc, char **argv) {
+    const std::string default_cfg_filename = "solver_config.yaml";
 
     // Explicit CLI overrides (std::optional = "not provided by user")
     std::string                cfg_filename;
@@ -67,11 +69,18 @@ int main(int argc, char **argv) {
     // ------------------------------------------------------------------
     loader::SolverConfig cfg;
 
+    const bool explicit_cfg = !cfg_filename.empty();
+    if (!explicit_cfg && std::filesystem::exists(default_cfg_filename))
+        cfg_filename = default_cfg_filename;
+
     if (!cfg_filename.empty()) {
         try {
             loader::load_yaml_config(cfg, cfg_filename);
             utils::dbg << "[config] Loaded: " << cfg_filename << "\n";
         } catch (const std::exception& e) {
+            if (!explicit_cfg)
+                utils::dbg << "[config] Skipping default config '" << cfg_filename
+                          << "': " << e.what() << "\n";
             std::cerr << utils::red << e.what() << "\n" << utils::reset;
             return 1;
         }

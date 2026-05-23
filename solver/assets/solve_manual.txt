@@ -19,6 +19,11 @@ DESCRIPTION
    heuristic to find a feasible set of wells to visit and a route for the
    intervention crews.
 
+   On startup, solve first tries to load solver_config.yaml from the current
+   working directory.  If that file does not exist, the built-in defaults are
+   used.  Passing -c/--config overrides the default config path and makes that
+   explicit file mandatory.
+
    For each battery the algorithm:
      1. Ranks the battery's wells by priority (descending) then cost
         (ascending).
@@ -75,6 +80,8 @@ OPTIONS
 
    -c FILE, --config FILE
       Load solver parameters from a YAML configuration file.
+      When omitted, solve tries solver_config.yaml in the current working
+      directory before falling back to built-in defaults.
       Keys present in the file override built-in defaults; missing keys
       keep their default values.  See CONFIGURATION FILE below.
 
@@ -91,9 +98,12 @@ OPTIONS
         input.param_file      Path to parameters_*.dat
         input.battery_file    Path to batteries_*.dat
         input.dist_file       Path to distance_*.dat
-        solver.max_wells      Window size K  (integer, default: 20)
-        solver.tolerance      Production tolerance  (float, default: 0.05)
+      solver.max_wells      Window size K  (integer, default: 100)
+      solver.tolerance      Production tolerance  (float, default: 0.10)
         solver.crews          Number of crews  (integer, default: 2)
+      solver.max_quantity   Global well-count cap  (integer, default: 100)
+      solver.max_cost       Global cost cap  (float, default: 5000)
+      solver.max_loss       Global loss cap  (float, default: 5000)
         output.file           Output file path  (string)
         output.debug          Enable debug output  (true/false)
 
@@ -127,9 +137,12 @@ CONFIGURATION FILE
      dist_file:    ""        # path to distance_*.dat
 
    solver:
-     max_wells: 20           # cyclic-window size K  (integer)
-     tolerance: 0.05         # ±fraction of Gpt  (float, e.g. 0.05 = ±5 %)
-     crews:     2            # number of intervention crews  (integer)
+   max_wells: 100          # cyclic-window size K  (integer)
+   tolerance: 0.10         # ±fraction of Gpt  (float, e.g. 0.10 = ±10 %)
+   crews:     2            # number of intervention crews  (integer)
+   max_quantity: 100       # global well-count cap  (integer)
+   max_cost: 5000          # global cost cap  (float)
+   max_loss: 5000          # global loss cap  (float)
 
     output:
        file:  ""               # output path; empty uses "solution.txt"
