@@ -57,6 +57,7 @@ init_paths() {
 
   declare -gA METHOD_OUTPUT_DIRS
   METHOD_OUTPUT_DIRS[greedy]="$OUTPUT_DIR/greedy"
+  METHOD_OUTPUT_DIRS[hs]="$OUTPUT_DIR/hs"
 }
 
 setup_python_environment() {
@@ -93,6 +94,11 @@ ensure_base_dirs() {
   mkdir -p "$INSTANCES_DIR" "$CPLEX_OUTPUT_DIR" "$SCIP_OUTPUT_DIR"
   local opt_method
   for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
+    if [[ -z "${METHOD_OUTPUT_DIRS[$opt_method]+x}" ]]; then
+      echo "Error: output directory mapping is not defined for optimization method '$opt_method'."
+      echo "Add it to METHOD_OUTPUT_DIRS in pipelines/lib/common.sh."
+      exit 1
+    fi
     mkdir -p "${METHOD_OUTPUT_DIRS[$opt_method]}"
   done
 }

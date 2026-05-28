@@ -50,6 +50,11 @@ param crews := {res.get('crews', 1)};
 param gpt_inferior := 10; # Percentage
 param gpt_superior := 10; # Percentage
 
+# Weigths
+param alfa := 1; #asociado a la distancias
+param beta := 10; #asociado a las perdidas
+param gama := 1; #asociado al costo
+
 # Variables
 var newregime[P] >= 0 <= 100;
 var z[P] binary;
@@ -62,7 +67,7 @@ var loss >= 0;
 var cost >= 0;
 
 # Objective Function
-minimize objfunc: distance;
+minimize objfunc: alfa*distance+beta*loss+gama*cost;
 
 # Constraints
 subto lossbound: loss <= maxloss;
