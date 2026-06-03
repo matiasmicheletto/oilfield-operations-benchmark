@@ -152,4 +152,75 @@
 \end{algorithm}
 
 
+
+\section{Harmony Search}
+
+Harmony Search (HS) was introduced in \cite{geem_harmony_search} as a metaheuristic inspired by musical improvisation, where each decision variable is analogous to a musician's pitch and a candidate solution is a harmony. The original purpose of HS was to provide a flexible global optimization framework for complex engineering design problems, particularly when the search space is nonlinear, nonconvex, and difficult to treat with exact or gradient-based methods.  
+
+The optimization problem proposed in this paper has these same characteristics: (i) coupled battery-level and global constraints, (ii) mixed decision structure (continuous regime values and implicit discrete well selection through regime changes), and (iii) an embedded routing component whose cost depends on the selected wells and therefore introduces additional nonlinearity. For this reason, HS is relevant as a robust exploration--exploitation strategy that can navigate infeasible and feasible regions while progressively improving multi-criteria performance.  
+
+In the implemented solver, each harmony is encoded as a full regime vector $\mathbf{r}'=(r'_1,\dots,r'_{|W|})$, indexed by well id. A well is interpreted as selected when $r'_w \neq r_w$ (current regime), so selection and regime assignment are handled simultaneously. To improve stability and feasibility, candidates are first clamped to $[0,100]$ and then repaired per battery so that achieved production is moved toward the target tolerance interval. This repair operator is a key adaptation for this domain because battery production targets are hard operational requirements.  
+
+Evaluation uses a normalized weighted objective (cost, production loss, route distance, and number of selected wells) plus a penalty term for violations of all constraints (battery targets, battery cost/loss, and global quantity/cost/loss). Normalization avoids scale dominance between heterogeneous terms, and penalties allow controlled exploration near constraint boundaries. The algorithm explicitly tracks both the best overall harmony and the best feasible harmony; at termination, only a feasible harmony is accepted. This design preserves exploration pressure while enforcing operational admissibility in the final recommendation.  
+
+Additional practical adaptations include optional seeding with the greedy solution, which accelerates convergence, and random initialization around current regimes, which keeps early search close to operationally plausible settings. During improvisation, HMCR/PAR/$bw$ regulate memory reuse and local pitch adjustment, while a change probability controls random diversification. Replacing only the worst harmony at each iteration maintains memory quality without losing diversity too quickly.  
+
+From an operational perspective, this HS variant should be interpreted as a constraint-aware improvement heuristic: it does not guarantee global optimality, but it consistently produces feasible, high-quality solutions for instances where exact optimization can be computationally expensive.
+
+
+%@article{geem_harmony_search,
+%    author = {Geem, Zong Woo and Kim, Joong and Loganathan, G.V.},
+%    year = {2001},
+%    month = {02},
+%    pages = {60-68},
+%    title = {A New Heuristic Optimization Algorithm: Harmony Search},
+%    volume = {76},
+%    journal = {Simulation},
+%    doi = {10.1177/003754970107600201}
+%}
+
+
+\Needspace{8cm}
+\begin{algorithm}[H]
+\caption{Harmony Search solver for regime adjustment (core loop)}
+\label{alg:harmony_search_solver}
+\begin{algorithmic}[1]
+\Statex
+\State \textbf{Function} $Eval(h)$:
+\Statex \hspace{1em} Clamp all regimes to $[0,100]$ and repair battery production toward tolerance window
+\Statex \hspace{1em} Extract selected wells ($r'_w \neq r_w$), then compute cost, loss, and multi-crew distance
+\Statex \hspace{1em} Compute violations: battery target/cost/loss and global quantity/cost/loss caps
+\Statex \hspace{1em} $f(h) \gets$ weighted normalized objective $+\ \lambda\cdot$ normalized violations
+\Statex \hspace{1em} Mark feasible iff all violations are zero
+
+\State Initialize harmony memory $HM$ with $HMS$ candidates
+\Statex \hspace{1em} (optionally insert one seed from Greedy solution, then fill the rest at random)
+\ForAll{$h \in HM$} 
+    \State Evaluate $h$ with $Eval(h)$
+\EndFor
+
+\State Keep best harmony $h^{best}$ and best feasible harmony $h^{feas}$ (if any)
+
+\For{$t \gets 1$ to $Iter$}
+    \State Build new harmony $h^{new}$ well by well:
+    \Statex \hspace{1em} with probability $HMCR$, copy regime from a random harmony in $HM$
+    \Statex \hspace{1em} and with probability $PAR$, apply pitch adjustment $\pm bw$
+    \Statex \hspace{1em} otherwise sample random/new-or-current regime controlled by $p_{chg}$
+
+    \State Evaluate $h^{new}$ with $Eval(h^{new})$
+    \State Replace worst harmony in $HM$ if $f(h^{new})$ is better
+    \State Update $h^{best}$ and $h^{feas}$
+\EndFor
+
+\If{no feasible harmony was found}
+    \State \Return \textsc{Infeasible}
+\EndIf
+
+\State Decode selected harmony into $S$ (new regimes, selected wells, crew routes, distance, cost, loss)
+\State Mark $S$ feasible and \Return $S$
+
+\end{algorithmic}
+\end{algorithm}
+
+
 \end{document}

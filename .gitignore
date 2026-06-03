@@ -9,10 +9,13 @@ solver/obj/
 generator/instances/
 output/cplex/
 output/greedy/
+output/hs/
 output/scip/
 
 # Ignore documentation build artifacts
 doc/*.pdf
+doc/*.fls
+doc/*.fdb_latexmk
 *.aux
 *.log
 *.out

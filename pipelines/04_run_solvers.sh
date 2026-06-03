@@ -53,15 +53,14 @@ for param_path in "${param_files[@]}"; do
     for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
       opt_output_dir="${METHOD_OUTPUT_DIRS[$opt_method]}"
 
-      sort_method=""
-      for sort_method in "${SORT_METHODS[@]}"; do
-        sol_path="$opt_output_dir/${opt_method}_${scenario_stem}_${sort_method}.txt"
-        routes_path="$opt_output_dir/routes_${scenario_stem}_${sort_method}.txt"
+      if [[ "$opt_method" == "hs" ]]; then
+        sol_path="$opt_output_dir/${opt_method}_${scenario_stem}.txt"
+        routes_path="$opt_output_dir/routes_${scenario_stem}.txt"
 
-        echo "  - Solving instance '$param_stem' scenario '$scenario_stem' optimizer='$opt_method' sort_method='$sort_method' -> $(basename "$sol_path")"
+        echo "  - Solving instance '$param_stem' scenario '$scenario_stem' optimizer='$opt_method' -> $(basename "$sol_path")"
 
         if [[ "$DRY_RUN" == "true" ]]; then
-          echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --method $opt_method --set solver.sort_method=$sort_method -f -o $sol_path > $routes_path"
+          echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --method $opt_method -f -o $sol_path > $routes_path"
         else
           "$SOLVER_BIN" \
             -c "$SOLVER_CONFIG" \
@@ -69,11 +68,32 @@ for param_path in "${param_files[@]}"; do
             -b "$bat_path" \
             -d "$dist_path" \
             --method "$opt_method" \
-            --set "solver.sort_method=$sort_method" \
             -f \
             -o "$sol_path" > "$routes_path"
         fi
-      done
+      else
+        sort_method=""
+        for sort_method in "${SORT_METHODS[@]}"; do
+          sol_path="$opt_output_dir/${opt_method}_${scenario_stem}_${sort_method}.txt"
+          routes_path="$opt_output_dir/routes_${scenario_stem}_${sort_method}.txt"
+
+          echo "  - Solving instance '$param_stem' scenario '$scenario_stem' optimizer='$opt_method' sort_method='$sort_method' -> $(basename "$sol_path")"
+
+          if [[ "$DRY_RUN" == "true" ]]; then
+            echo "    $SOLVER_BIN -c $SOLVER_CONFIG -p $param_path -b $bat_path -d $dist_path --method $opt_method --set solver.sort_method=$sort_method -f -o $sol_path > $routes_path"
+          else
+            "$SOLVER_BIN" \
+              -c "$SOLVER_CONFIG" \
+              -p "$param_path" \
+              -b "$bat_path" \
+              -d "$dist_path" \
+              --method "$opt_method" \
+              --set "solver.sort_method=$sort_method" \
+              -f \
+              -o "$sol_path" > "$routes_path"
+          fi
+        done
+      fi
     done
   done
 done

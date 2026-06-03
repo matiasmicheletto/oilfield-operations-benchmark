@@ -34,19 +34,33 @@ for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
   for routes_path in "${routes_files[@]}"; do
     routes_name="$(basename "$routes_path")"
     tmp="${routes_name#routes_}"
-    sort_method="${tmp##*_}"
-    sort_method="${sort_method%.txt}"
-    scenario_stem="${tmp%_${sort_method}.txt}"
+    sort_method=""
+    scenario_stem="${tmp%.txt}"
+    overlay_name="route_overlay_${scenario_stem}.png"
+
+    sort_candidate=""
+    for sort_candidate in "${SORT_METHODS[@]}"; do
+      if [[ "$tmp" == *"_${sort_candidate}.txt" ]]; then
+        sort_method="$sort_candidate"
+        scenario_stem="${tmp%_${sort_method}.txt}"
+        overlay_name="route_overlay_${scenario_stem}_${sort_method}.png"
+        break
+      fi
+    done
+
+    if [[ -n "$sort_method" ]]; then
+      echo "  - Plotting routes for '$opt_method'/'$scenario_stem' sort_method='$sort_method' -> $overlay_name"
+    else
+      echo "  - Plotting routes for '$opt_method'/'$scenario_stem' -> $overlay_name"
+    fi
 
     spatial_path="$INSTANCES_DIR/spatial_data_${scenario_stem}.npz"
-    overlay_path="$opt_output_dir/route_overlay_${scenario_stem}_${sort_method}.png"
+    overlay_path="$opt_output_dir/$overlay_name"
 
     if [[ ! -f "$spatial_path" ]]; then
       echo "  Warning: spatial data not found for '$scenario_stem' — skipping."
       continue
     fi
-
-    echo "  - Plotting routes for '$opt_method'/'$scenario_stem' sort_method='$sort_method' -> $(basename "$overlay_path")"
     if [[ "$DRY_RUN" == "true" ]]; then
       echo "    python $PLOT_SCRIPT --spatial $spatial_path --routes $routes_path --output $overlay_path"
     else
