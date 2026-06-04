@@ -58,6 +58,19 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
     int    sel_count    = 0;
     double sel_cost     = 0.0;
     double sel_loss_acc = 0.0;
+    std::unordered_map<int, double> bat_loss_acc;
+    bat_loss_acc.reserve(inst.batteries.size());
+
+    for (const Battery& bat : inst.batteries) {
+        double loss = 0.0;
+        const auto& bat_all = bat_map.at(bat.id);
+        for (size_t i : bat_all) {
+            const Well& w = inst.wells[i];
+            loss += std::max(0.0, w.gross_prod - w.net_prod) * w.current_regime / 100.0;
+        }
+        bat_loss_acc[bat.id] = loss;
+        sel_loss_acc += loss;
+    }
 
     // ------------------------------------------------------------------
     // Per-battery regime adjustment
@@ -132,7 +145,7 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
         // --------------------------------------------------------------
         std::vector<int> selected_in_bat;
         double           bat_cost_acc = 0.0;
-        double           bat_loss_acc = 0.0;
+        double           bat_loss_b = bat_loss_acc.at(bat.id);
 
         for (size_t i : order) {
             if (gap <= 1e-9) break;  // target met
@@ -169,12 +182,15 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
                 }
             }
             // Check global hard constraints before accepting
-            const double loss_w = std::max(0.0, w.gross_prod - w.net_prod);
+            const double loss_base = std::max(0.0, w.gross_prod - w.net_prod);
+            const double loss_old = loss_base * w.current_regime / 100.0;
+            const double loss_new = loss_base * new_regime / 100.0;
+            const double loss_delta = loss_new - loss_old;
             if (sel_count + 1 > max_qty) continue;
             if (sel_cost + w.cost > max_cost_global) continue;
-            if (sel_loss_acc + loss_w > max_loss_global) continue;
+            if (sel_loss_acc + loss_delta > max_loss_global) continue;
             if (bat_cost_acc + w.cost > max_cost_bat) continue;
-            if (bat_loss_acc + loss_w > max_loss_bat) continue;
+            if (bat_loss_b + loss_delta > max_loss_bat) continue;
 
             // Accept adjustment
             gap -= gap_reduction;
@@ -183,10 +199,12 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
             selected_set.insert(w.id);
             sel_count++;
             sel_cost     += w.cost;
-            sel_loss_acc += loss_w;
+            sel_loss_acc += loss_delta;
             bat_cost_acc += w.cost;
-            bat_loss_acc += loss_w;
+            bat_loss_b   += loss_delta;
         }
+
+        bat_loss_acc[bat.id] = bat_loss_b;
 
         for (int id : selected_in_bat)
             sol.selected_ids.push_back(id);
@@ -225,14 +243,20 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
               << "  loss=" << sel_loss_acc << "\n";
 
     // ------------------------------------------------------------------
-    // Objective values from actual new regimes
+    // Objective values from actual post-decision regimes
     // ------------------------------------------------------------------
     sol.total_cost = 0.0;
     sol.total_loss = 0.0;
     for (int id : sol.selected_ids) {
         const Well& w  = inst.wells[well_idx_by_id.at(id)];
         sol.total_cost += w.cost;
-        sol.total_loss += std::max(0.0, w.gross_prod - w.net_prod);
+    }
+
+    // Field-performance loss: all wells contribute using their post-decision regime.
+    for (const Well& w : inst.wells) {
+        const double r = selected_set.count(w.id) ? sol.new_regimes[w.id]
+                                                  : w.current_regime;
+        sol.total_loss += std::max(0.0, w.gross_prod - w.net_prod) * r / 100.0;
     }
 
     // ------------------------------------------------------------------

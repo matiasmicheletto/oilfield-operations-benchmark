@@ -63,7 +63,7 @@ struct Solution {
     std::vector<std::vector<int>> crew_routes;
 
     double total_cost;  // sum C[i] over selected wells
-    double total_loss;  // sum (G[i]-N[i]) * newregime[i] / 100 over selected wells
+    double total_loss;  // sum (G[i]-N[i]) * post_regime[i] / 100 over all wells
 
     // Legacy single-route view (union of all crew routes, excluding depot repetitions).
     // Kept for backward compatibility; prefer crew_routes for new code.

@@ -176,16 +176,17 @@ EvaluatedHarmony evaluate_harmony(const Instance& inst,
 
     for (const Well& w : inst.wells) {
         const double r = out.regimes[w.id];
+        const size_t bp = bat_pos.at(w.battery_id);
+        const double loss_w = std::max(0.0, w.gross_prod - w.net_prod) * r / 100.0;
+        out.total_loss += loss_w;
+        bat_loss[bp] += loss_w;
+
         if (std::fabs(r - w.current_regime) <= 1e-9)
             continue;
 
         out.selected_ids.push_back(w.id);
         out.total_cost += w.cost;
-        out.total_loss += std::max(0.0, w.gross_prod - w.net_prod);
-
-        const size_t bp = bat_pos.at(w.battery_id);
         bat_cost[bp] += w.cost;
-        bat_loss[bp] += std::max(0.0, w.gross_prod - w.net_prod);
     }
 
     out.selected_count = static_cast<int>(out.selected_ids.size());
