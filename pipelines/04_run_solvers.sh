@@ -1,17 +1,52 @@
 #!/usr/bin/env bash
 
+# Usage:
+#   ./04_run_solvers.sh [options]
+# Options:
+#   --dry-run           Print the commands that would be executed without running them.
+#   --instance NAME     Run only the instance whose parameter file stem matches NAME.
+# Example: --instance "instance1" will run on parameters_instance1.dat and batteries_instance1_*.dat
+
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=pipelines/lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
+INSTANCE_NAME=""
+pipeline_args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --instance)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --instance requires a value." >&2
+        exit 1
+      fi
+      INSTANCE_NAME="$2"
+      shift 2
+      ;;
+    --instance=*)
+      INSTANCE_NAME="${1#*=}"
+      shift
+      ;;
+    *)
+      pipeline_args+=("$1")
+      shift
+      ;;
+  esac
+done
+
 init_defaults
-parse_pipeline_args "$@"
+parse_pipeline_args "${pipeline_args[@]}"
 init_paths
 ensure_base_dirs
 
-echo "[4/6] Running optimization solvers on all instances"
+if [[ -n "$INSTANCE_NAME" ]]; then
+  echo "[4/6] Running optimization solvers for instance '$INSTANCE_NAME'"
+else
+  echo "[4/6] Running optimization solvers on all instances"
+fi
 
 SOLVER_BIN="$SOLVER_DIR/bin/solve"
 SOLVER_CONFIG="$SOLVER_DIR/solver_config.yaml"
@@ -19,9 +54,17 @@ SOLVER_CONFIG="$SOLVER_DIR/solver_config.yaml"
 build_solver_binary
 
 shopt -s nullglob
-param_files=("$INSTANCES_DIR"/parameters_*.dat)
+if [[ -n "$INSTANCE_NAME" ]]; then
+  param_files=("$INSTANCES_DIR/parameters_${INSTANCE_NAME}.dat")
+else
+  param_files=("$INSTANCES_DIR"/parameters_*.dat)
+fi
 if (( ${#param_files[@]} == 0 )); then
-  echo "Warning: no parameters_*.dat files found in '$INSTANCES_DIR'. Skipping step 4."
+  if [[ -n "$INSTANCE_NAME" ]]; then
+    echo "Warning: no parameter file found for instance '$INSTANCE_NAME' in '$INSTANCES_DIR'. Skipping step 4."
+  else
+    echo "Warning: no parameters_*.dat files found in '$INSTANCES_DIR'. Skipping step 4."
+  fi
   exit 0
 fi
 

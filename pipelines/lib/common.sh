@@ -23,6 +23,7 @@ init_defaults() {
   CONFIG_FILE="generator_config.yaml"
   NUM_INSTANCES=5
   NUM_SCENARIOS=1
+  DELETE_PREVIOUS=true
   N_WELLS=10
   N_BATTERIES=2
   DRY_RUN=false

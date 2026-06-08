@@ -63,6 +63,10 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
 
     for (const Battery& bat : inst.batteries) {
         double loss = 0.0;
+        if (!bat_map.count(bat.id)) {
+            bat_loss_acc[bat.id] = 0.0;
+            continue;
+        }
         const auto& bat_all = bat_map.at(bat.id);
         for (size_t i : bat_all) {
             const Well& w = inst.wells[i];
@@ -76,6 +80,10 @@ bool GreedySolver::solve(const Instance& inst, Solution& sol,
     // Per-battery regime adjustment
     // ------------------------------------------------------------------
     for (const Battery& bat : inst.batteries) {
+        if (!bat_map.count(bat.id)) {
+            utils::dbg << "[greedy] Battery " << bat.id << ": no wells assigned, skipping.\n";
+            continue;
+        }
         const auto& bat_all = bat_map.at(bat.id);
 
         // Maximum achievable production (all wells at 100 %)
