@@ -15,6 +15,8 @@ Options:
   -w, --wells N        Number of wells per instance (default: ${N_WELLS:-10})
   -b, --batteries N    Number of batteries per instance (default: ${N_BATTERIES:-2})
   -d, --dry-run        Print commands without executing them
+      --keep           Keep existing files whose names do not match the current
+                       wells/batteries configuration (default: delete all previous files)
   -h, --help           Show this help message
 EOF
 }
@@ -41,6 +43,7 @@ parse_pipeline_args() {
       -w|--wells)      N_WELLS="$2";        shift 2 ;;
       -b|--batteries)  N_BATTERIES="$2";   shift 2 ;;
       -d|--dry-run)    DRY_RUN=true;         shift   ;;
+      --keep)          DELETE_PREVIOUS=false; shift   ;;
       -h|--help)       pipeline_usage; exit 0 ;;
       *) echo "Unknown option: $1" >&2; pipeline_usage; exit 1 ;;
     esac
@@ -110,17 +113,35 @@ clear_previous_outputs() {
     return
   fi
 
-  find "$INSTANCES_DIR"    -maxdepth 1 -name "*.dat" -delete
-  find "$INSTANCES_DIR"    -maxdepth 1 -name "*.zpl" -delete
-  find "$INSTANCES_DIR"    -maxdepth 1 -name "*.lp"  -delete
-  find "$CPLEX_OUTPUT_DIR" -maxdepth 1 -name "*.sol" -delete
-  find "$SCIP_OUTPUT_DIR"  -maxdepth 1 -name "*.txt" -delete
+  if [[ "$DELETE_PREVIOUS" == "true" ]]; then
+    # Delete all generated files regardless of configuration.
+    find "$INSTANCES_DIR"    -maxdepth 1 -name "*.dat" -delete
+    find "$INSTANCES_DIR"    -maxdepth 1 -name "*.zpl" -delete
+    find "$INSTANCES_DIR"    -maxdepth 1 -name "*.lp"  -delete
+    find "$CPLEX_OUTPUT_DIR" -maxdepth 1 -name "*.sol" -delete
+    find "$SCIP_OUTPUT_DIR"  -maxdepth 1 -name "*.txt" -delete
 
-  local opt_method
-  for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
-    find "${METHOD_OUTPUT_DIRS[$opt_method]}" -maxdepth 1 -name "*.txt" -delete
-    find "${METHOD_OUTPUT_DIRS[$opt_method]}" -maxdepth 1 -name "*.png" -delete
-  done
+    local opt_method
+    for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
+      find "${METHOD_OUTPUT_DIRS[$opt_method]}" -maxdepth 1 -name "*.txt" -delete
+      find "${METHOD_OUTPUT_DIRS[$opt_method]}" -maxdepth 1 -name "*.png" -delete
+    done
+  else
+    # Selective deletion: only remove files whose names embed the current
+    # wells/batteries configuration stem, leaving other configurations intact.
+    local stem="${N_WELLS}_${N_BATTERIES}"
+    find "$INSTANCES_DIR"    -maxdepth 1 -name "*_${stem}_*.dat" -delete
+    find "$INSTANCES_DIR"    -maxdepth 1 -name "*_${stem}_*.zpl" -delete
+    find "$INSTANCES_DIR"    -maxdepth 1 -name "*_${stem}_*.lp"  -delete
+    find "$CPLEX_OUTPUT_DIR" -maxdepth 1 -name "*_${stem}_*.sol" -delete
+    find "$SCIP_OUTPUT_DIR"  -maxdepth 1 -name "*_${stem}_*.txt" -delete
+
+    local opt_method
+    for opt_method in "${OPTIMIZATION_METHODS[@]}"; do
+      find "${METHOD_OUTPUT_DIRS[$opt_method]}" -maxdepth 1 -name "*_${stem}_*.txt" -delete
+      find "${METHOD_OUTPUT_DIRS[$opt_method]}" -maxdepth 1 -name "*_${stem}_*.png" -delete
+    done
+  fi
 }
 
 build_solver_binary() {
