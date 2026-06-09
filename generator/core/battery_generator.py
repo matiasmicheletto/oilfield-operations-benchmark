@@ -27,8 +27,11 @@ class BatteryGenerator:
         rounding = self.config["rounding"].get("total_gross", 0)
 
         # 1. Assign Wells to Batteries
-        reps = int(np.ceil(n_wells / n_bats))
-        battery_ids = np.repeat(np.arange(1, n_bats + 1), reps)[:n_wells]
+        base = n_wells // n_bats
+        remainder = n_wells % n_bats
+        counts = np.full(n_bats, base, dtype=int)
+        counts[:remainder] += 1
+        battery_ids = np.repeat(np.arange(1, n_bats + 1), counts)
         
         # 2. Compute G_t (Sum + Noise), Loss, and Cost for each Battery
         battery_targets = []

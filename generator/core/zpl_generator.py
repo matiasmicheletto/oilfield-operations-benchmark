@@ -47,8 +47,8 @@ param maxquantity := card(P)/2;
 param crews := {res.get('crews', 1)};
 
 # Tolerances
-param gpt_inferior := 10; # Percentage
-param gpt_superior := 10; # Percentage
+param gpt_inferior := 0; # Percentage
+param gpt_superior := 0; # Percentage
 
 # Weigths
 param alfa := 1; #asociado a la distancias

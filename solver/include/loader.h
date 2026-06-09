@@ -20,12 +20,12 @@ struct SolverConfig {
     std::string battery_file;
     std::string dist_file;
     // [solver]
-    int    max_wells    = 100;   // cyclic-window size K (legacy; now controls sort window)
-    double tolerance    = 0.1;  // ±5 % deviation from Gpt
-    int    crews        = 2;
-    int    max_quantity = 100;//std::numeric_limits<int>::max();     // global well-count cap
-    double max_cost     = 5000;//std::numeric_limits<double>::max();  // budget cap (sum C[i])
-    double max_loss     = 5000;//std::numeric_limits<double>::max();  // net-loss cap (sum (G-N)*regime/100)
+    int    max_wells    = 1000;  // cyclic-window size K (legacy; now controls sort window)
+    double tolerance    = 0.001; // ± tolerance is considered "close enough" for greedy selection
+    int    crews        = 3;
+    int    max_quantity = 1000;  //std::numeric_limits<int>::max();     // global well-count cap
+    double max_cost     = 50000; //std::numeric_limits<double>::max();  // budget cap (sum C[i])
+    double max_loss     = 50000; //std::numeric_limits<double>::max();  // net-loss cap (sum (G-N)*regime/100)
     std::string sort_method = "priority_cost"; // per-battery well sort: priority_cost | loss | route
 
     // [harmony_search]

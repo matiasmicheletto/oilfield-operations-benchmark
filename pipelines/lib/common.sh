@@ -30,8 +30,8 @@ init_defaults() {
   N_BATTERIES=2
   DRY_RUN=false
   CPLEX_BIN=""
-  CPLEX_TIME_LIMIT=1200
-  SORT_METHODS=(priority_cost loss route)
+  CPLEX_TIME_LIMIT=600
+  SORT_METHODS=(loss priority_cost route)
   OPTIMIZATION_METHODS=(greedy hs)
 }
 

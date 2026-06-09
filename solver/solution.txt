@@ -1,0 +1,15 @@
+
+=== Solution ===
+Selected wells (5): 5 2 1 6 8
+Per-well regimes:
+  Well 5: current_regime=50 -> new_regime=0
+  Well 2: current_regime=68 -> new_regime=0
+  Well 1: current_regime=91 -> new_regime=18.1296
+  Well 6: current_regime=70 -> new_regime=100
+  Well 8: current_regime=68 -> new_regime=99.4324
+Per-crew routes (2 crews):
+  Crew 1: 0 → 8 → 2 → 5 → 0   (distance: 1295)
+  Crew 2: 0 → 1 → 6 → 0   (distance: 856)
+Total distance: 2151
+Total cost: 43
+Total loss (actual): 128.351

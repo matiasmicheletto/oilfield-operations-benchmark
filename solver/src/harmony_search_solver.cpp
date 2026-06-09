@@ -432,12 +432,14 @@ bool HarmonySearchSolver::solve(const Instance& inst,
         return false;
 
     sol.new_regimes.assign(inst.wells.size() + 1, 0.0);
-    for (const Well& w : inst.wells)
+    
+    for (const Well& w : inst.wells){
         sol.new_regimes[w.id] = final_h.regimes[w.id];
+        sol.total_loss += std::max(0.0, w.gross_prod - w.net_prod) * final_h.regimes[w.id] / 100.0;
+    }
 
     sol.selected_ids = final_h.selected_ids;
     sol.total_cost = final_h.total_cost;
-    sol.total_loss = final_h.total_loss;
     sol.crew_routes = final_h.crew_routes;
     sol.total_distance = final_h.total_distance;
     sol.route = final_h.route;

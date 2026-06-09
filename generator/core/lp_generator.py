@@ -58,8 +58,8 @@ class LPGenerator:
         maxquantity = round(len(wells["G"])/2)
 
         crews       = res.get("crews",             1)
-        gpt_sup     = 1.10   # +10 %
-        gpt_inf     = 0.90   # -10 %
+        gpt_sup     = 1
+        gpt_inf     = 1
 
         n          = len(wells["G"])          # number of wells
         P          = list(range(1, n + 1))    # 1-based well indices

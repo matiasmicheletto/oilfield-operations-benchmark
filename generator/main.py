@@ -96,7 +96,7 @@ def run_packager(config):
 
             # 5. Export Batteries
             with open(bat_file, "w") as f:
-                f.write("ID\tGpt\Loss\Cost\n")
+                f.write("ID\tGpt\tLoss\tCost\n")
                 for i in range(len(bat_targets)):
                     f.write(f"{i+1}\t{bat_targets[i]}\t{bat_loses[i]}\t{bat_costs[i]}\n")
 
